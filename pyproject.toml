@@ -1,0 +1,20 @@
+[project]
+name = "uzhavan-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Gopi45-gk", email = "Gopi45-gk@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "kokoro-onnx>=0.6.1",
+    "soundfile>=0.14.0",
+]
+
+[project.scripts]
+uzhavan-ai = "uzhavan_ai:main"
+
+[build-system]
+requires = ["uv_build>=0.12.8,<0.13.0"]
+build-backend = "uv_build"

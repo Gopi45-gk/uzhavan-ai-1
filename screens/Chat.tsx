@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Volume2, Mic, Paperclip, X, Image as ImageIcon, Clock, Trash2 } from 'lucide-react';
 import { getFarmerChatResponse } from '../services/geminiService';
+import { speakText, stopSpeech, isSpeaking } from '../services/ttsService';
 import { ChatMessage } from '../types';
 
 const HISTORY_KEY = 'uzhavan_chat_search_history';
@@ -69,49 +70,17 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Backend gTTS proxy – unlimited, free, all 6 languages
-  const GTTS_LANG: Record<string, string> = {
-    tamil: 'ta', english: 'en', hindi: 'hi', telugu: 'te', kannada: 'kn', malayalam: 'ml',
+  const speakBrowserFallback = (text: string) => {
+    speakText(text, { language });
   };
-
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const playAudioResponse = (text: string) => {
     if (!text?.trim()) return;
-    // Stop any current playback
-    if (ttsAudioRef.current) { ttsAudioRef.current.pause(); ttsAudioRef.current = null; }
-
-    const gttsLang = GTTS_LANG[language] || language.split('-')[0] || 'ta';
-    const url = `${API_BASE_URL}/api/tts/speak?text=${encodeURIComponent(text.substring(0, 500))}&lang=${gttsLang}`;
-
-    fetch(url)
-      .then(res => {
-        if (!res.ok) throw new Error('Audio fetch failed');
-        return res.blob();
-      })
-      .then(blob => {
-        const objectUrl = URL.createObjectURL(blob);
-        const audio = new Audio(objectUrl);
-        audio.volume = 1.0;
-        ttsAudioRef.current = audio;
-
-        audio.onended = () => {
-          ttsAudioRef.current = null;
-          URL.revokeObjectURL(objectUrl);
-        };
-        audio.onerror = () => {
-          console.warn('[TTS] Playback failed');
-          ttsAudioRef.current = null;
-          URL.revokeObjectURL(objectUrl);
-        };
-        audio.play().catch(e => {
-          console.warn('[TTS] Play error:', e);
-          URL.revokeObjectURL(objectUrl);
-        });
-      })
-      .catch(err => {
-        console.warn('[TTS] Fetch failed:', err);
-      });
+    if (isSpeaking()) {
+      stopSpeech();
+      return;
+    }
+    speakText(text, { language });
   };
 
   const handleSend = async (overrideText?: string) => {

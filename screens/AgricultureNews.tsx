@@ -29,6 +29,7 @@ import {
     Bell
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { speakText, stopSpeech, isSpeaking } from '../services/ttsService';
 
 // ==================== TYPES ====================
 
@@ -65,7 +66,7 @@ interface Props {
 
 // ==================== CONSTANTS ====================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const STATES = [
     { id: 'all_india', name: 'All India', name_tamil: 'அனைத்து இந்தியா' },
@@ -97,84 +98,22 @@ const TAG_CONFIG: Record<string, { color: string; bg: string; icon: React.Elemen
 // ==================== VOICE SERVICE ====================
 
 class VoiceService {
-    private synth: SpeechSynthesis | null = null;
-    private currentUtterance: SpeechSynthesisUtterance | null = null;
-
-    constructor() {
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-            this.synth = window.speechSynthesis;
-        }
-    }
-
-    getVoiceForLanguage(language: string): SpeechSynthesisVoice | null {
-        if (!this.synth) return null;
-
-        const voices = this.synth.getVoices();
-        const langMap: Record<string, string[]> = {
-            tamil: ['ta-IN', 'ta'],
-            telugu: ['te-IN', 'te'],
-            malayalam: ['ml-IN', 'ml'],
-            kannada: ['kn-IN', 'kn'],
-            hindi: ['hi-IN', 'hi'],
-            english: ['en-IN', 'en-US', 'en'],
-        };
-
-        const codes = langMap[language] || langMap.english;
-
-        for (const code of codes) {
-            const voice = voices.find(v => v.lang.startsWith(code));
-            if (voice) return voice;
-        }
-
-        return voices[0] || null;
-    }
-
     speak(text: string, language: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (!this.synth) {
-                reject(new Error('Speech synthesis not supported'));
-                return;
-            }
-
-            // Cancel any ongoing speech
-            this.stop();
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            const voice = this.getVoiceForLanguage(language);
-
-            if (voice) {
-                utterance.voice = voice;
-                utterance.lang = voice.lang;
-            }
-
-            utterance.rate = 0.9; // Slightly slower for farmers
-            utterance.pitch = 1;
-            utterance.volume = 1;
-
-            utterance.onend = () => {
-                this.currentUtterance = null;
-                resolve();
-            };
-
-            utterance.onerror = (e) => {
-                this.currentUtterance = null;
-                reject(e);
-            };
-
-            this.currentUtterance = utterance;
-            this.synth.speak(utterance);
+        return new Promise((resolve) => {
+            speakText(text, {
+                language,
+                onEnd: () => resolve(),
+                onError: () => resolve(),
+            });
         });
     }
 
     stop() {
-        if (this.synth) {
-            this.synth.cancel();
-            this.currentUtterance = null;
-        }
+        stopSpeech();
     }
 
     isSpeaking(): boolean {
-        return this.synth?.speaking || false;
+        return isSpeaking();
     }
 }
 
@@ -196,6 +135,13 @@ const AgricultureNews: React.FC<Props> = ({
     const [selectedLanguage, setSelectedLanguage] = useState(language || 'tamil');
     const [speakingCardIndex, setSpeakingCardIndex] = useState<number | null>(null);
     const [showFilters, setShowFilters] = useState(false);
+
+    // Sync selectedLanguage with prop when parent language changes
+    useEffect(() => {
+        if (language) {
+            setSelectedLanguage(language);
+        }
+    }, [language]);
 
     // Data state
     const [newsData, setNewsData] = useState<NewsCardsResponse | null>(null);

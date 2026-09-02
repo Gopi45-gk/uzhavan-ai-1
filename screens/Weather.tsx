@@ -177,7 +177,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
 
               {weather.daily_forecast[0] && (
                 <p className="text-xs font-semibold opacity-75 mt-1">
-                  High: {Math.round(weather.daily_forecast[0].temp_max)}°C · Low: {Math.round(weather.daily_forecast[0].temp_min)}°C
+                  {language === 'tamil' ? 'அதிகபட்சம்' : language === 'hindi' ? 'अधिकतम' : language === 'telugu' ? 'గరిష్టం' : language === 'kannada' ? 'ಗರಿಷ್ಠ' : language === 'malayalam' ? 'പരമാവധി' : 'High'}: {Math.round(weather.daily_forecast[0].temp_max)}°C · {language === 'tamil' ? 'குறைந்தபட்சம்' : language === 'hindi' ? 'न्यूनतम' : language === 'telugu' ? 'కనిష్టం' : language === 'kannada' ? 'ಕನಿಷ್ಠ' : language === 'malayalam' ? 'കുറഞ്ഞത്' : 'Low'}: {Math.round(weather.daily_forecast[0].temp_min)}°C
                 </p>
               )}
 
@@ -185,17 +185,23 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
               <div className="grid grid-cols-3 gap-3 mt-6 pt-4 border-t border-white/20 text-center">
                 <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
                   <Wind size={20} className="mx-auto mb-1 opacity-85" />
-                  <span className="text-[10px] font-bold block opacity-75">Wind</span>
+                  <span className="text-[10px] font-bold block opacity-75">
+                    {language === 'tamil' ? 'காற்று' : language === 'hindi' ? 'हवा' : language === 'telugu' ? 'గాలి' : language === 'kannada' ? 'ಗಾಳಿ' : language === 'malayalam' ? 'കാറ്റ്' : 'Wind'}
+                  </span>
                   <span className="text-xs font-extrabold">{Math.round(weather.current.windspeed)} KM/H</span>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
                   <CloudRain size={20} className="mx-auto mb-1 opacity-85" />
-                  <span className="text-[10px] font-bold block opacity-75">Rain</span>
+                  <span className="text-[10px] font-bold block opacity-75">
+                    {language === 'tamil' ? 'மழை' : language === 'hindi' ? 'बारिश' : language === 'telugu' ? 'వర్షం' : language === 'kannada' ? 'ಮಳೆ' : language === 'malayalam' ? 'മഴ' : 'Rain'}
+                  </span>
                   <span className="text-xs font-extrabold">{weather.current.precipitation} MM</span>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10">
                   <Thermometer size={20} className="mx-auto mb-1 opacity-85" />
-                  <span className="text-[10px] font-bold block opacity-75">Humidity</span>
+                  <span className="text-[10px] font-bold block opacity-75">
+                    {language === 'tamil' ? 'ஈரப்பதம்' : language === 'hindi' ? 'नमी' : language === 'telugu' ? 'తేమ' : language === 'kannada' ? 'ತೇವಾಂಶ' : language === 'malayalam' ? 'ഈർപ്പം' : 'Humidity'}
+                  </span>
                   <span className="text-xs font-extrabold">{weather.current.humidity}%</span>
                 </div>
               </div>
@@ -211,7 +217,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
                 <AlertTriangle size={24} className="text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <h4 className="font-extrabold text-amber-900 text-sm">
-                    🌧️ Rain Alert — {weather.rain_alert.alert_level.toUpperCase()}
+                    🌧️ {language === 'tamil' ? 'மழை எச்சரிக்கை' : language === 'hindi' ? 'बारिश की चेतावनी' : language === 'telugu' ? 'వర్ష హెచ్చరిక' : language === 'kannada' ? 'ಮಳೆ ಎಚ್ಚರಿಕೆ' : language === 'malayalam' ? 'മഴ മുന്നറിയിപ്പ്' : 'Rain Alert'} — {weather.rain_alert.alert_level.toUpperCase()}
                   </h4>
                   <p className="text-xs font-semibold text-amber-800 mt-1">{weather.rain_alert.alert_message}</p>
                 </div>
@@ -221,7 +227,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
             {/* Agricultural Advisory */}
             <div className="bg-white p-5 rounded-3xl shadow-lg border-l-8 border-emerald-600">
               <h4 className="font-extrabold text-emerald-950 text-base mb-2 flex items-center gap-2">
-                🌾 {t('agriInsights') || 'Agricultural Advisory'}
+                🌾 {t('agriInsights') || (language === 'tamil' ? 'விவசாய நுண்ணறிவு' : 'Agricultural Advisory')}
               </h4>
               <p className="text-gray-700 text-xs leading-relaxed font-medium whitespace-pre-line">
                 {weather.farming_advisory}
@@ -233,7 +239,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
               <div className="flex items-center justify-between mb-4 border-b pb-3">
                 <h4 className="font-extrabold text-gray-900 text-sm flex items-center gap-2">
                   <Calendar size={18} className="text-cyan-600" />
-                  {language === 'tamil' ? '30 நாட்கள் வானிலை கணிப்பு' : '30-Day Monthly Forecast'}
+                  {language === 'tamil' ? '30 நாட்கள் வானிலை கணிப்பு' : language === 'hindi' ? '30 दिनों का मौसम पूर्वानुमान' : language === 'telugu' ? '30 రోజుల వాతావరణ అంచనా' : language === 'kannada' ? '30 ದಿನಗಳ ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ' : language === 'malayalam' ? '30 ദിവസത്തെ കാലാവസ്ഥ പ്രവചനം' : '30-Day Monthly Forecast'}
                 </h4>
                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                   <button
@@ -242,7 +248,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
                       forecastRange === '7' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600'
                     }`}
                   >
-                    7 Days
+                    7 {language === 'tamil' ? 'நாட்கள்' : 'Days'}
                   </button>
                   <button
                     onClick={() => setForecastRange('30')}
@@ -250,7 +256,7 @@ const Weather: React.FC<Props> = ({ onBack, language, t, userLocation }) => {
                       forecastRange === '30' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-600'
                     }`}
                   >
-                    30 Days
+                    30 {language === 'tamil' ? 'நாட்கள்' : 'Days'}
                   </button>
                 </div>
               </div>

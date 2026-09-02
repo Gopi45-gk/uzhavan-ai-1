@@ -129,6 +129,14 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
     loc_key = (location_name or "").lower().strip()
     display_location = location_name.title() if (location_name and location_name.strip()) else "Thanjavur"
 
+    # Normalize lang to standard 2-letter or full name
+    clean_lang = (lang or "en").lower().strip()
+    lang_code = "ta" if clean_lang in ("ta", "tamil") else \
+                "hi" if clean_lang in ("hi", "hindi") else \
+                "te" if clean_lang in ("te", "telugu") else \
+                "kn" if clean_lang in ("kn", "kannada") else \
+                "ml" if clean_lang in ("ml", "malayalam") else "en"
+
     # 1. Resolve coordinates
     resolved_lat, resolved_lon = 10.7870, 79.1378 # Thanjavur default
     if loc_key in TN_DISTRICT_COORDS:
@@ -158,8 +166,56 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
     windspeed = 14.2
     cloudcover = 25
     precipitation = 0.0
-    weather_desc = "Partly Cloudy" if lang == "en" else "பகுதி மேகமூட்டம்"
     daily_forecast = []
+
+    def translate_code(code: int, target_lang: str) -> str:
+        if code == 0:
+            if target_lang == "ta": return "தெளிவான வானம் (வெயில்)"
+            if target_lang == "hi": return "साफ़ मौसम (धूप)"
+            if target_lang == "te": return "తెలియైన ఆకాశం (ఎండ)"
+            if target_lang == "kn": return "ಸ್ಪಷ್ಟ ಆಕಾಶ (ಬಿಸಿಲು)"
+            if target_lang == "ml": return "വ്യക്തമായ ആകാശം (വെയിൽ)"
+            return "Sunny & Clear"
+        elif code in [1, 2]:
+            if target_lang == "ta": return "பகுதி மேகமூட்டம்"
+            if target_lang == "hi": return "आंशिक रूप से बादल"
+            if target_lang == "te": return "పాక్షికంగా మబ్బులు"
+            if target_lang == "kn": return "ಭಾಗಶಃ ಮೋಡ"
+            if target_lang == "ml": return "ഭാഗികമായി മേഘാവൃതമായ"
+            return "Partly Cloudy"
+        elif code == 3:
+            if target_lang == "ta": return "முழு மேகமூட்டம்"
+            if target_lang == "hi": return "घने बादल"
+            if target_lang == "te": return "పూర్తిగా మబ్బులు"
+            if target_lang == "kn": return "ಮೋಡ ಮುಸುಕಿದ"
+            if target_lang == "ml": return "മേഘാവൃതമായ"
+            return "Overcast / Cloudy"
+        elif code in [45, 48]:
+            if target_lang == "ta": return "பனிமூட்டம்"
+            if target_lang == "hi": return "कोहरा"
+            if target_lang == "te": return "మంచు"
+            if target_lang == "kn": return "ಮಂಜು"
+            if target_lang == "ml": return "മഞ്ഞ്"
+            return "Foggy"
+        elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
+            if target_lang == "ta": return "லேசான / மிதமான மழை"
+            if target_lang == "hi": return "हल्की / मध्यम बारिश"
+            if target_lang == "te": return "లేత వర్షం"
+            if target_lang == "kn": return "ಸಾಧಾರಣ ಮಳೆ"
+            if target_lang == "ml": return "മിதமான മഴ"
+            return "Rain Showers"
+        elif code in [95, 96, 99]:
+            if target_lang == "ta": return "இடி மின்னலுடன் மழை"
+            if target_lang == "hi": return "गरज के साथ बारिश"
+            if target_lang == "te": return "ఉరుములతో కూడిన వర్షం"
+            if target_lang == "kn": return "ಸಿಡಿಲು ಮಳೆ"
+            if target_lang == "ml": return "ഇടിമിന്നലോടു കൂടിയ മഴ"
+            return "Thunderstorm"
+        if target_lang == "ta": return "தெளிவான வானம்"
+        if target_lang == "hi": return "साफ़ मौसम"
+        return "Clear Sky"
+
+    weather_desc = translate_code(0, lang_code)
 
     try:
         w_res = requests.get(
@@ -173,22 +229,7 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
             windspeed = cw.get("windspeed", windspeed)
             wcode = cw.get("weathercode", 0)
 
-            def translate_code(code):
-                if code == 0:
-                    return "தெளிவான வானம் (வெயில்)" if lang == "ta" else "Sunny & Clear"
-                elif code in [1, 2]:
-                    return "பகுதி மேகமூட்டம்" if lang == "ta" else "Partly Cloudy"
-                elif code == 3:
-                    return "முழு மேகமூட்டம்" if lang == "ta" else "Overcast / Cloudy"
-                elif code in [45, 48]:
-                    return "பனிமூட்டம்" if lang == "ta" else "Foggy"
-                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
-                    return "லேசான / மிதமான மழை" if lang == "ta" else "Rain Showers"
-                elif code in [95, 96, 99]:
-                    return "இடி மின்னலுடன் மழை" if lang == "ta" else "Thunderstorm"
-                return "தெளிவான வானம்" if lang == "ta" else "Clear Sky"
-
-            weather_desc = translate_code(wcode)
+            weather_desc = translate_code(wcode, lang_code)
 
             daily = w_data.get("daily", {})
             dates = daily.get("time", [])
@@ -204,7 +245,7 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
                     "temp_min": min_temps[i] if i < len(min_temps) else 24.0,
                     "precipitation_sum": precips[i] if i < len(precips) else 0.0,
                     "rain_sum": precips[i] if i < len(precips) else 0.0,
-                    "weather_description": translate_code(codes[i] if i < len(codes) else 0)
+                    "weather_description": translate_code(codes[i] if i < len(codes) else 0, lang_code)
                 })
 
             # Extend to full 30-day forecast dynamically
@@ -220,7 +261,7 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
                         "temp_min": round(last_min + (i % 3) * 0.4, 1),
                         "precipitation_sum": round((i % 6) * 0.5, 1),
                         "rain_sum": round((i % 6) * 0.5, 1),
-                        "weather_description": translate_code((i % 3))
+                        "weather_description": translate_code((i % 3), lang_code)
                     })
     except Exception as e:
         print(f"[Open-Meteo] Weather fetch notice: {e}")
@@ -236,8 +277,40 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
                 "temp_min": round(23.5 + (i % 4) * 0.5, 1),
                 "precipitation_sum": round((i % 7) * 0.6, 1),
                 "rain_sum": round((i % 7) * 0.6, 1),
-                "weather_description": "தெளிவான வானம்" if lang == "ta" else "Clear Sky"
+                "weather_description": translate_code(0, lang_code)
             })
+
+    has_heavy_rain = any(d.get("precipitation_sum", 0) > 10 for d in daily_forecast[:3])
+
+    # Multilingual Rain Alert Message
+    if has_heavy_rain:
+        if lang_code == "ta": alert_msg = "உங்கள் மாவட்டத்தில் மழை எதிர்பார்க்கப்படுகிறது. பயிர்களை பாதுகாப்பாக வைக்கவும்."
+        elif lang_code == "hi": alert_msg = "आपके जिले में बारिश की संभावना है। फसलों को सुरक्षित रखें।"
+        elif lang_code == "te": alert_msg = "మీ జిల్లాలో వర్షం కురిసే అవకాశం ఉంది. పంటలను జాగ్రత్తగా ఉంచుకోండి."
+        elif lang_code == "kn": alert_msg = "ನಿಮ್ಮ ಜಿಲ್ಲೆಯಲ್ಲಿ ಮಳೆಯಾಗುವ ಸಾಧ್ಯತೆಯಿದೆ. ಬೆಳೆಗಳನ್ನು ರಕ್ಷಿಸಿ."
+        elif lang_code == "ml": alert_msg = "നിങ്ങളുടെ ജില്ലയിൽ മഴയ്ക്ക് സാധ്യതയുണ്ട്. വിളകൾ സൂക്ഷിക്കുക."
+        else: alert_msg = "Rain expected in your district. Take necessary crop precautions."
+    else:
+        if lang_code == "ta": alert_msg = "அடுத்த 48 மணிநேரத்திற்கு கனமழை எச்சரிக்கை இல்லை. வழக்கமான விவசாயப் பணிகளைத் தொடரலாம்."
+        elif lang_code == "hi": alert_msg = "अगले 48 घंटों में भारी बारिश की कोई चेतावनी नहीं है।"
+        elif lang_code == "te": alert_msg = "తదుపరి 48 గంటల్లో భారీ వర్ష సూచన లేదు."
+        elif lang_code == "kn": alert_msg = "ಮುಂದಿನ 48 ಗಂಟೆಗಳಲ್ಲಿ ಭಾರಿ ಮಳೆಯ ಮುನ್ಸೂಚನೆ ಇಲ್ಲ."
+        elif lang_code == "ml": alert_msg = "അടുത്ത 48 മണിക്കൂറിൽ ശക്തമായ മഴയ്ക്ക് സാധ്യതയില്ല."
+        else: alert_msg = "No heavy rain expected in the next 48 hours. Favorable for field work."
+
+    # Multilingual Farming Advisory
+    if lang_code == "ta":
+        advisory_msg = f"{display_location} மாவட்ட விவசாயிகளுக்கான இன்றைய விவசாய வழிகாட்டுதல்: தெளிவான வானிலை காரணமாக வயல்வெளிகளில் தெளித்தல் மற்றும் அறுவடை பணிகளுக்கு ஏற்றது."
+    elif lang_code == "hi":
+        advisory_msg = f"{display_location} जिले के किसानों के लिए आज की कृषि सलाह: मौसम अनुकूल है, खेत के कार्यों के लिए उपयुक्त समय है।"
+    elif lang_code == "te":
+        advisory_msg = f"{display_location} జిల్లా రైతులకు నేటి వ్యవసాయ సలహా: పొలం పనులకు అనుకూలమైన వాతావరణం ఉంది."
+    elif lang_code == "kn":
+        advisory_msg = f"{display_location} ಜಿಲ್ಲೆಯ ರೈತರಿಗೆ ಇಂದಿನ ಕೃಷಿ ಸಲಹೆ: ಹೊಲದ ಕೆಲಸಗಳಿಗೆ ಸೂಕ್ತವಾದ ಹವಾಮಾನವಿದೆ."
+    elif lang_code == "ml":
+        advisory_msg = f"{display_location} ജില്ലയിലെ കർഷകർക്കുള്ള ഇന്നത്തെ കാർഷിക ഉപദേശം: പാടത്തെ ജോലികൾക്ക് അനുയോജ്യമായ കാലാവസ്ഥ."
+    else:
+        advisory_msg = f"Optimal agricultural advisory for registered district {display_location}: Suitable for field work and crop spraying."
 
     return {
         "location": display_location,
@@ -253,13 +326,35 @@ def fetch_real_live_weather(location_name: str, requested_lat: float = 13.0827, 
         },
         "daily_forecast": daily_forecast,
         "rain_alert": {
-            "has_alert": any(d.get("precipitation_sum", 0) > 10 for d in daily_forecast[:3]),
-            "alert_level": "moderate" if any(d.get("precipitation_sum", 0) > 10 for d in daily_forecast[:3]) else "none",
-            "alert_message": "Rain expected in your district." if any(d.get("precipitation_sum", 0) > 10 for d in daily_forecast[:3]) else "No heavy rain expected in the next 48 hours.",
+            "has_alert": has_heavy_rain,
+            "alert_level": "moderate" if has_heavy_rain else "none",
+            "alert_message": alert_msg,
             "rain_days": []
         },
-        "farming_advisory": f"Optimal agricultural advisory for registered district {display_location}: Suitable for field work.",
+        "farming_advisory": advisory_msg,
         "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+# ================= WEATHER INTELLIGENCE ENDPOINTS =================
+@app.get("/api/weather/v3/intelligence")
+@app.get("/api/weather/intelligence")
+def get_weather_intelligence_api(location: str = "Thanjavur", lat: float = 13.0827, lon: float = 80.2707, lang: str = "ta"):
+    return fetch_real_live_weather(location_name=location, requested_lat=lat, requested_lon=lon, lang=lang)
+
+@app.get("/api/weather/v3/rain-alert")
+@app.get("/api/weather/rain-alert")
+def get_rain_alert_api(location: str = "Thanjavur", lat: float = 13.0827, lon: float = 80.2707, lang: str = "ta"):
+    w = fetch_real_live_weather(location_name=location, requested_lat=lat, requested_lon=lon, lang=lang)
+    return w.get("rain_alert", {})
+
+@app.get("/api/weather/v3/sun-times")
+@app.get("/api/weather/sun-times")
+def get_sun_times_api(lat: float = 13.0827, lon: float = 80.2707):
+    return {
+        "sunrise": f"{time.strftime('%Y-%m-%d')}T06:00:00+05:30",
+        "sunset": f"{time.strftime('%Y-%m-%d')}T18:30:00+05:30",
+        "is_day": 6 <= int(time.strftime('%H')) < 18,
+        "time_of_day": "day" if 6 <= int(time.strftime('%H')) < 18 else "night"
     }
 
 # ================= HEALTH CHECK =================
@@ -490,30 +585,18 @@ def get_dashboard(
                 "percentage_change": item["percentage_change"]
             })
 
+    # Fetch real localized news cards for dashboard
+    state_slug = state.lower().replace(" ", "_")
+    news_res = fetch_agriculture_news_cards(state=state_slug, language=lang, max_cards=2)
+    news_cards = news_res.get("cards", [])
+
     return {
         "status": "success",
         "message": "Dashboard data retrieved successfully",
         "weather": real_weather,
         "mandi_prices": all_flat_prices[:6],
         "news": {
-            "cards": [
-                {
-                    "title": f"Agmarknet Agriculture Advisory for {display_location} District 2026",
-                    "summary": f"State agriculture department and Agmart announce daily mandi guidelines for farmers in {display_location}.",
-                    "tag": "Government Scheme",
-                    "source": "Agri Ministry & Agmarknet",
-                    "date": "Today",
-                    "image_url": "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?w=600&auto=format&fit=crop&q=60"
-                },
-                {
-                    "title": "Agmart Market Outlook & Crop Price Predictions",
-                    "summary": "Agmarknet APMC analysts release real-time mandi prices and price forecasts for upcoming market arrivals.",
-                    "tag": "Market Insight",
-                    "source": "Agmart & Uzhavan RAG",
-                    "date": "Today",
-                    "image_url": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&fit=crop&q=60"
-                }
-            ],
+            "cards": news_cards,
             "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
         },
         "meta": {"lat": real_weather["latitude"], "lon": real_weather["longitude"], "state": state, "lang": lang}
@@ -705,7 +788,7 @@ def get_weather_current(req: Optional[dict] = None):
 
 # ================= AGRICULTURE NEWS ENDPOINTS (Real-Time Intelligence) =================
 
-from services.news_service import fetch_agriculture_news_cards, invalidate_cache
+from services.news_service_clean import fetch_agriculture_news_cards, invalidate_cache
 
 @app.get("/api/news/cards")
 @app.get("/api/news")
@@ -916,6 +999,11 @@ async def nvidia_chat_proxy(request: Request):
     req_temp = data.get("temperature", 0.2)
     req_tokens = data.get("max_tokens", 1024)
 
+    # Inject farmer context if provided by frontend (crop-aware, location-aware personalization)
+    farmer_ctx = data.get("farmer_context", "")
+    if farmer_ctx and isinstance(farmer_ctx, str) and len(farmer_ctx) > 10:
+        req_messages = [{"role": "system", "content": farmer_ctx}] + req_messages
+
     # 1. Try Primary NVIDIA NIM (Llama 3.3 70B)
     try:
         if NVIDIA_API_KEY and not NVIDIA_API_KEY.startswith("nvapi-placeholder"):
@@ -973,75 +1061,85 @@ async def nvidia_chat_proxy(request: Request):
     except Exception as e:
         print(f"[NVIDIA Chat Proxy] Groq fallback error: {e}")
 
-    # Safe JSON response if all cloud LLMs fail (prevents 500 / empty response)
-    is_router = any("json" in str(m.get("content", "")).lower() for m in req_messages if isinstance(m, dict))
-    is_disease = any("disease" in str(m.get("content", "")).lower() or "patholog" in str(m.get("content", "")).lower() for m in req_messages if isinstance(m, dict))
+    # Safe response if all cloud LLMs fail
+    user_msgs = [str(m.get("content", "")) for m in req_messages if isinstance(m, dict) and m.get("role") == "user"]
+    user_text = " ".join(user_msgs).lower()
+    is_json_requested = any("return strictly json" in user_text or "return json" in user_text for m in req_messages if isinstance(m, dict))
 
-    if is_disease:
-        # Return structured valid JSON array so the disease parser works even when cloud LLMs fail
-        crop_match = "crop"
-        for m in req_messages:
-            content = str(m.get("content", ""))
-            for word in ["carrot", "rice", "paddy", "tomato", "chilli", "cotton", "maize", "wheat", "banana", "potato", "onion", "brinjal", "okra"]:
-                if word in content.lower():
-                    crop_match = word
-                    break
-        c_title = crop_match.capitalize()
-        fallback_content = f'''[
+    # Multilingual Crop Extractor from user query
+    crop_name_tn = "பயிர்"
+    crop_name_en = "Crop"
+    
+    crop_keywords = [
+        (["potato", "உருளைக்கிழங்கு", "உருளை", "ஆலூ"], "உருளைக்கிழங்கு", "Potato"),
+        (["tomato", "தக்காளி", "டமாடா"], "தக்காளி", "Tomato"),
+        (["paddy", "rice", "நெல்", "நெல்லு", "அரிசி"], "நெல்", "Paddy"),
+        (["onion", "வெங்காயம்", "பியஜ்"], "வெங்காயம்", "Onion"),
+        (["brinjal", "eggplant", "கத்தரி", "கத்தரிக்காய்"], "கத்தரிக்காய்", "Brinjal"),
+        (["chilli", "chili", "மிளகாய்", "மிர்சி"], "மிளகாய்", "Chilli"),
+        (["cotton", "பருத்தி"], "பருத்தி", "Cotton"),
+        (["maize", "corn", "சோளம்", "மக்காசோளம்"], "சோளம்", "Maize"),
+        (["banana", "வாழை", "வாழைக்காய்"], "வாழை", "Banana"),
+        (["carrot", "கேரட்"], "கேரட்", "Carrot"),
+        (["sugarcane", "கரும்பு"], "கரும்பு", "Sugarcane"),
+        (["okra", "bhindi", "வெண்டை", "வெண்டைக்காய்"], "வெண்டைக்காய்", "Okra"),
+        (["turmeric", "மஞ்சள்"], "மஞ்சள்", "Turmeric"),
+        (["groundnut", "peanut", "கடலை", "நிலக்கடலை"], "நிலக்கடலை", "Groundnut"),
+    ]
+
+    for kw_list, tn, en in crop_keywords:
+        if any(kw in user_text for kw in kw_list):
+            crop_name_tn = tn
+            crop_name_en = en
+            break
+
+    # Intent Classification from USER text only
+    is_disease = any(w in user_text for w in ["disease", "blight", "rot", "wilt", "spot", "pest", "fungus", "insect", "நோய்", "பூச்சி", "அறிகுறி"])
+    is_cultivation = any(w in user_text for w in ["grow", "plant", "sow", "cultivat", "care", "வளர்க்க", "பயிரிட", "நடவு", "என்ன பண்ணலாம்", "எப்படி", "சாகுபடி"])
+    is_fertilizer = any(w in user_text for w in ["fertilizer", "manure", "npk", "urea", "dap", "உரம்", "உரங்கள்"])
+    is_price = any(w in user_text for w in ["price", "market", "rate", "cost", "விலை", "சந்தை", "மண்டி"])
+    is_weather = any(w in user_text for w in ["weather", "rain", "forecast", "மழை", "வானிலை", "வருமா"])
+
+    if is_json_requested:
+        if is_disease:
+            fallback_content = f'''[
   {{
-    "name": "{c_title} Alternaria Leaf Blight",
-    "symptoms": "Dark brown to black circular lesions on leaves with yellow margins. Leaves curl, dry up and drop prematurely.",
-    "causes": "Fungus Alternaria species. Favored by high humidity, warm temperature and frequent rain splash.",
-    "remedy": "1. Spray Mancozeb 75% WP at 2.5g/L\\n2. Apply Copper Oxychloride 50% WP at 3g/L\\n3. Remove and burn infected leaves\\n4. Avoid overhead irrigation",
-    "prevention": "Use certified disease-free seeds. Maintain 3-year crop rotation. Ensure proper plant spacing and drainage."
-  }},
-  {{
-    "name": "{c_title} Powdery Mildew",
-    "symptoms": "White powdery fungal spots on upper leaf surfaces and stems. Leaves turn yellow, brittle and dry out.",
-    "causes": "Fungus Erysiphe species. Spread by air currents in warm weather with humid mornings.",
-    "remedy": "1. Spray Wettable Sulfur 80% WP at 3g/L\\n2. Apply Hexaconazole 5% EC at 1ml/L\\n3. Spray Neem seed kernel extract 5%\\n4. Prune lower shaded leaves",
-    "prevention": "Grow resistant varieties. Avoid excess nitrogen fertilizer. Ensure good field air circulation."
-  }},
-  {{
-    "name": "{c_title} Root Rot and Wilt",
-    "symptoms": "Sudden wilting of foliage. Roots turn brown, soft and decay. Stunted plant growth.",
-    "causes": "Soil-borne pathogens (Fusarium / Pythium). Favored by poorly drained, waterlogged soil.",
-    "remedy": "1. Drench soil with Carbendazim 50% WP at 1g/L\\n2. Apply Trichoderma viride bio-fungicide at 2.5kg/ha\\n3. Improve field drainage",
-    "prevention": "Plant in raised beds. Practice crop rotation with non-host crops. Deep summer ploughing."
+    "name": "{crop_name_en} Leaf Spot",
+    "symptoms": "Brown circular spots on leaves.",
+    "causes": "Fungal pathogen infection.",
+    "remedy": "1. Spray Mancozeb 75% WP at 2.5g/L\\n2. Apply Copper Oxychloride at 3g/L",
+    "prevention": "Maintain proper field drainage and crop rotation."
   }}
 ]'''
-    elif is_router:
-        content_lower = ""
-        for m in req_messages:
-            content_lower += " " + str(m.get("content", "")).lower()
-
-        detected_intent = "general"
-        if any(w in content_lower for w in ["weather", "rain", "மழை", "வானிலை", "forecast", "temp"]):
-            detected_intent = "weather"
-        elif any(w in content_lower for w in ["price", "market", "விலை", "rate", "சந்தை", "மண்டி"]):
-            detected_intent = "market"
-        elif any(w in content_lower for w in ["disease", "pest", "blight", "rot", "spot", "wilt", "நோய்", "பூச்சி"]):
-            detected_intent = "disease"
-        elif any(w in content_lower for w in ["news", "செய்தி", "update", "scheme", "திட்டம்"]):
-            detected_intent = "advisory"
-        elif any(w in content_lower for w in ["crop", "seed", "பயிர்", "விதை"]):
-            detected_intent = "crop"
-
-        detected_crop = "null"
-        for c in ["tomato", "rice", "paddy", "brinjal", "cotton", "maize", "wheat", "banana", "potato", "onion", "chilli", "groundnut", "carrot", "okra", "mango"]:
-            if c in content_lower:
-                detected_crop = f'"{c}"'
-                break
-
-        detected_loc = "null"
-        for l in ["chennai", "madurai", "coimbatore", "trichy", "salem", "thanjavur", "erode", "tirunelveli", "bangalore", "hyderabad", "tamil nadu"]:
-            if l in content_lower:
-                detected_loc = f'"{l}"'
-                break
-
-        fallback_content = f'{{"intent":"{detected_intent}","emotion":"normal","language":"ta","crop":{detected_crop},"location":{detected_loc},"date":null}}'
+        else:
+            fallback_content = f'{{"intent":"general","crop":"{crop_name_en}","location":null}}'
     else:
-        fallback_content = "வணக்கம் உழவரே! உங்கள் பயிர் மற்றும் விவசாய கேள்விகளுக்கு உதவ தயாராக உள்ளேன். தயவுசெய்து உங்கள் கேள்வியை கேட்கவும்."
+        if is_cultivation:
+            fallback_content = f"🌾 {crop_name_tn} பயிர் சாகுபடி & பராமரிப்பு வழிகாட்டி:\n\n" \
+                               f"1. 🌱 நிலம் தயாரித்தல்: மண் நன்கு உழுது, தொழு உரம் (FYM) சேர்த்து நிலத்தை தயார் செய்யவும்.\n" \
+                               f"2. 💧 நீர்ப்பாசனம்: விதைப்பு / நடவுக்குப் பின் மிதமான நீர்ப்பாசனம் அளித்து, நீர் தேங்குவதை தவிர்க்கவும்.\n" \
+                               f"3. 🌿 உர மேலாண்மை: நைடரஜன், பாஸ்பரஸ், பொட்டாஷ் (NPK) சீரான அளவில் அளிக்கவும்.\n" \
+                               f"4. 🛡️ பயிர் பாதுகாப்பு: ஆரம்ப கட்ட களையெடுப்பு மற்றும் பூச்சி கண்காணிப்பு அவசியம்."
+        elif is_fertilizer:
+            fallback_content = f"🌾 {crop_name_tn} பயிர் உர மேலாண்மை வழிகாட்டி:\n\n" \
+                               f"1. 🌿 இயற்கை உரம்: நிலம் தயாரிக்கும் போது எக்கருக்கு 5-10 டன் தொழு உரம் இடவும்.\n" \
+                               f"2. 🧪 ரசாயன உரம்: NPK சீரான அளவில் அடி உரமாகவும், 30 நாட்களுக்குப் பின் மேலுரமாகவும் இடவும்.\n" \
+                               f"3. 💡 குறிப்பு: மண் பரிசோதனை செய்து உர அளவை நிர்ணயிப்பது சிறந்தது."
+        elif is_disease:
+            fallback_content = f"🌾 {crop_name_tn} பயிர் நோய் பாதுகாப்பு வழிகாட்டி:\n\n" \
+                               f"📌 1. இலைப்புள்ளி நோய் (Leaf Blight)\n" \
+                               f"🔍 அறிகுறிகள்: இலைகளில் பழுப்பு நிற புள்ளிகள் மற்றும் வாடல்.\n" \
+                               f"🔬 காரணம்: பூஞ்சை தாக்குதல்.\n" \
+                               f"🌿 தீர்வு: மேன்கோசெப் 75% WP லிட்டருக்கு 2.5 கிராம் நீரில் கலந்து தெளிக்கவும்.\n" \
+                               f"🛡️ தடுப்பு: பாதிக்கப்பட்ட இலைகளை அகற்றி, நல்ல நீர் மேலாண்மை பின்பற்றவும்."
+        elif is_price:
+            fallback_content = f"💰 {crop_name_tn} சந்தை தகவல்:\n\n" \
+                               f"தற்போது உங்கள் பகுதிக்கான நேரடி சந்தை தரவு புதுப்பிக்கப்பட்டு வருகிறது. உங்கள் உள்ளூர் மண்டியை அணுகவும்."
+        elif is_weather:
+            fallback_content = f"🌧️ வானிலை தகவல்:\n\n" \
+                               f"உங்கள் பகுதியில் மிதமான வானிலை நிலவுகிறது. களப்பணிகளுக்கு ஏற்ப நீர் மேலாண்மை செய்யவும்."
+        else:
+            fallback_content = f"வணக்கம் உழவரே! உங்கள் {crop_name_tn} பயிர் சாகுபடி மற்றும் பாதுகாப்பு தொடர்பான கேள்விகளுக்கு உதவத் தயாராக உள்ளேன். உங்கள் கேள்வியைக் கேட்கவும்."
 
     return {
         "choices": [{"message": {"role": "assistant", "content": fallback_content}, "finish_reason": "stop"}],
@@ -1102,21 +1200,40 @@ def get_call_history(limit: int = 50):
 @app.post("/api/calls/save")
 async def save_call_history(request: Request):
     try:
-        data = await request.json()
+        content_type = request.headers.get("content-type", "")
+        if "multipart/form-data" in content_type:
+            form = await request.form()
+            transcript = str(form.get("transcript", ""))
+            language = str(form.get("language", "tamil"))
+            duration = form.get("duration", 30)
+            start_time = str(form.get("start_time", time.strftime("%Y-%m-%dT%H:%M:%SZ")))
+            end_time = str(form.get("end_time", time.strftime("%Y-%m-%dT%H:%M:%SZ")))
+        else:
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            transcript = data.get("transcript", "")
+            language = data.get("language", "tamil")
+            duration = data.get("duration", 30)
+            start_time = data.get("start_time", time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            end_time = data.get("end_time", time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+
         call_id = len(CALL_HISTORY_DB) + 1
         record = {
             "id": call_id,
-            "language": data.get("language", "tamil"),
-            "transcript": data.get("transcript", ""),
+            "language": language,
+            "transcript": transcript,
             "has_audio": False,
-            "start_time": data.get("start_time", time.strftime("%Y-%m-%dT%H:%M:%SZ")),
-            "end_time": data.get("end_time", time.strftime("%Y-%m-%dT%H:%M:%SZ")),
-            "duration_seconds": data.get("duration_seconds", 30),
+            "start_time": start_time,
+            "end_time": end_time,
+            "duration_seconds": int(duration) if str(duration).isdigit() else 30,
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ")
         }
         CALL_HISTORY_DB.insert(0, record)
         return {"status": "success", "message": "Call history saved successfully", "id": call_id}
     except Exception as e:
+        print(f"[Save Call Error]: {e}")
         return {"status": "error", "message": str(e)}
 
 @app.get("/api/calls/audio/{call_id}")
@@ -1171,12 +1288,24 @@ TTS_AUDIO_CACHE = {}
 def tts_speak(text: str, lang: str = "ta"):
     cache_key = f"{lang}:{text.strip()}"
     if cache_key in TTS_AUDIO_CACHE:
-        return Response(content=TTS_AUDIO_CACHE[cache_key], media_type="audio/mpeg")
+        media_type = "audio/wav" if TTS_AUDIO_CACHE[cache_key].startswith(b'RIFF') else "audio/mpeg"
+        return Response(content=TTS_AUDIO_CACHE[cache_key], media_type=media_type)
+
+    try:
+        from kokoro_engine import generate_kokoro_speech
+        audio_bytes = generate_kokoro_speech(text, lang)
+        if audio_bytes and len(audio_bytes) > 100:
+            if len(TTS_AUDIO_CACHE) < 200:
+                TTS_AUDIO_CACHE[cache_key] = audio_bytes
+            media_type = "audio/wav" if audio_bytes.startswith(b'RIFF') else "audio/mpeg"
+            return Response(content=audio_bytes, media_type=media_type)
+    except Exception as err:
+        print(f"[TTS Endpoint] Kokoro engine notice: {err}")
 
     try:
         from gtts import gTTS
         import io
-        tts = gTTS(text=text, lang=lang, slow=False)
+        tts = gTTS(text=text[:500], lang=lang, slow=False)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
         fp.seek(0)

@@ -12,7 +12,7 @@
  * Uses Open-Meteo API via backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // ============= CACHE CONFIG =============
 const CACHE_KEY = 'uzhavan_weather_cache';

@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse, Type, Modality } from "@google/genai";
-import { buildFarmerContextPrompt, storeRecentDisease, getStoredFarmerProfile } from "./farmerContextService";
+import { buildFarmerContextPrompt, buildEnrichedContextPrompt, storeRecentDisease, getStoredFarmerProfile, fetchLiveWeatherForContext, fetchLiveMarketForContext, fetchLiveNewsForContext } from "./farmerContextService";
 
 // Dual-key system: try primary, fallback to voice key
 const GEMINI_KEYS = [
@@ -24,23 +24,26 @@ const NVIDIA_BASE_URL = import.meta.env.VITE_NVIDIA_BASE_URL || 'https://integra
 // Groq fallback for when all other keys are dead
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // ================= SYSTEM PROMPTS (RAG / CHAT & CALL) =================
-export const SYSTEM_PROMPT_CHAT = `You are உழவன் AI (Uzhavan AI), an expert agricultural assistant built to help farmers with clear, accurate, practical answers for all crops, seasons, pest control, and farming questions.
+export const SYSTEM_PROMPT_CHAT = `You are உழவன் AI (Uzhavan AI), an expert agricultural assistant built to help farmers with clear, accurate, practical answers for all crops, seasons, pest control, market prices, weather, and farming questions.
 
 LANGUAGE
-- Always reply in the exact language the farmer used (Tamil, English, Hindi, Telugu, Kannada, Malayalam).
-- Use simple, everyday words a farmer would use — clear, warm, and natural.
+- Always reply in the exact language requested (Tamil, English, Hindi, Telugu, Kannada, Malayalam).
+- Use simple, everyday words a farmer would understand — clear, respectful, warm, and natural.
 
 HOW TO ANSWER
-- Directly and confidently answer the farmer's question (e.g. crop planting seasons, potato/paddy cultivation, fertilizer tips, pest control).
-- Use retrieved reference material if provided. If reference material is not attached, provide accurate expert agricultural advice from your knowledge base.
-- Give a clear 3-6 sentence response or clean numbered list (1, 2, 3).
+- Directly and confidently answer the farmer's question.
+- If asking about market prices, use the provided LIVE MARKET DATA. Include market name, commodity, min/modal/max prices, and date.
+- If asking about weather, use the provided LIVE WEATHER DATA. Include temp, rain chance, and field impact.
+- If asking about disease or fertilizer, use the registered crop context and agricultural knowledge.
+- Format responses cleanly with readable bullet points and simple emojis.
 
-TEXT FORMATTING RULES (CRITICAL)
+CRITICAL FORMATTING RULES
+- NEVER output raw JSON, database arrays [{...}], raw objects {...}, code blocks, internal field names, or developer logs.
 - NEVER output raw Markdown asterisks like **text** or *text*.
-- Keep text plain and readable with standard spacing and clean lines so it displays clearly in chat bubbles.
+- Keep text plain and readable with standard spacing so it displays cleanly in chat bubbles.
 
 TONE
 - Knowledgeable, patient, respectful, and helpful. Speak like an experienced local agriculture expert.`;
@@ -53,32 +56,137 @@ LANGUAGE
 
 SPOKEN FORMAT — THIS MATTERS MOST
 - Every reply must be short: 2-3 sentences, spoken-style. No lists, no headings, no long explanations — this will be converted to audio and played on a call.
-- If more than one step is needed, describe them as a short flowing sentence ("first check X, then do Y") rather than a numbered list.
-- Never use symbols, abbreviations, or written punctuation that sounds strange read aloud (no "e.g.", no "%" — say "percent").
+- Never output raw JSON, arrays, or code blocks. Always respond in spoken natural language.
 
 HOW TO ANSWER
-- Answer only from the retrieved reference material for this query. Never invent facts.
-- If you don't have enough information, say so simply: "I'm not fully sure about that — please check with your nearest agriculture office." Keep it short and honest, don't over-apologize.
-- For pesticide/fertilizer doses or scheme eligibility, always add a short caution to confirm with a local officer before acting — even if you give the figure.
-
-CONVERSATION FLOW
-- This is a live call, not a chat — assume the farmer is listening in real time, possibly while working. Don't repeat the question back before answering; just answer.
-- If the question is unclear, ask ONE short clarifying question, then wait.
-- If the farmer's speech-to-text seems garbled or unclear, ask them to repeat rather than guessing what they meant.
+- Answer directly from the retrieved reference material for this query. Never invent facts.
+- For pesticide/fertilizer doses or scheme eligibility, always add a short caution to confirm with a local officer before acting.
 
 TONE
-- Calm, respectful, unhurried. Never sound like a scripted IVR menu — sound like a real person taking the time to help.`;
+- Calm, respectful, unhurried. Sound like a real person taking the time to help.`;
+
+// ─────────────────── FARMER RESPONSE SANITIZER ───────────────────
+export const sanitizeFarmerResponse = (text: string, language: string = 'english'): string => {
+  if (!text || typeof text !== 'string') return '';
+  let cleaned = text.trim();
+
+  // Strip markdown code fences like ```json ... ``` or ``` ... ```
+  cleaned = cleaned.replace(/^```(?:json)?\s*/gi, '').replace(/\s*```$/gi, '').trim();
+
+  // Check if string contains or starts with JSON
+  const firstChar = cleaned.charAt(0);
+  const isJsonStart = firstChar === '[' || firstChar === '{';
+  const containsJsonArray = cleaned.includes('[') && cleaned.includes(']');
+  const containsJsonObject = cleaned.includes('{') && cleaned.includes('}');
+
+  if (isJsonStart || containsJsonArray || containsJsonObject) {
+    try {
+      let jsonStr = cleaned;
+      if (!isJsonStart) {
+        const arrMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const objMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (arrMatch) jsonStr = arrMatch[0];
+        else if (objMatch) jsonStr = objMatch[0];
+      }
+
+      const parsed = JSON.parse(jsonStr);
+      const langLower = (language || 'english').toLowerCase();
+      const isTamil = langLower === 'tamil' || langLower === 'ta';
+
+      // 1. Array of Disease objects [{ name, symptoms, causes, remedy, prevention }]
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+        if (parsed[0].name || parsed[0].disease || parsed[0].symptoms) {
+          if (isTamil) {
+            return (
+              `🌾 பயிர் நோய் மற்றும் சிகிச்சை விவரங்கள்:\n\n` +
+              parsed.map((item: any, idx: number) => 
+                `📌 ${idx + 1}. ${item.name || item.disease || 'பயிர் நோய்'}\n` +
+                `🔍 அறிகுறிகள்: ${item.symptoms || 'இலைகளில் புள்ளிகள் மற்றும் வாடல்'}\n` +
+                `🔬 காரணம்: ${item.causes || item.cause || 'பூஞ்சை தாக்குதல்'}\n` +
+                `🌿 இயற்கை & ரசாயன தீர்வு: ${item.remedy || item.treatment || 'தகுந்த பூச்சிக்கொல்லி தெளிக்கவும்'}\n` +
+                `🛡️ தடுப்பு முறை: ${item.prevention || 'பாதிக்கப்பட்ட இலைகளை அகற்றி, நல்ல நீர் மேலாண்மை செய்யவும்'}`
+              ).join('\n\n')
+            );
+          } else {
+            return (
+              `🌾 Crop Disease & Treatment Guide:\n\n` +
+              parsed.map((item: any, idx: number) => 
+                `📌 ${idx + 1}. ${item.name || item.disease || 'Crop Disease'}\n` +
+                `🔍 Symptoms: ${item.symptoms || 'Leaf spots or wilting'}\n` +
+                `🔬 Cause: ${item.causes || item.cause || 'Fungal or bacterial infection'}\n` +
+                `🌿 Treatment: ${item.remedy || item.treatment || 'Apply recommended organic or chemical spray'}\n` +
+                `🛡️ Prevention: ${item.prevention || 'Remove infected leaves and maintain good soil drainage'}`
+              ).join('\n\n')
+            );
+          }
+        }
+      }
+
+      // 2. Single Disease Object { name, symptoms, causes, remedy, prevention }
+      if (!Array.isArray(parsed) && typeof parsed === 'object' && (parsed.name || parsed.disease || parsed.symptoms)) {
+        if (isTamil) {
+          return (
+            `🌾 பயிர் நோய் தகவல்:\n\n` +
+            `📌 நோய்: ${parsed.name || parsed.disease || 'பயிர் நோய்'}\n` +
+            `🔍 அறிகுறிகள்: ${parsed.symptoms || 'இலை வாடல்'}\n` +
+            `🔬 காரணம்: ${parsed.causes || parsed.cause || 'பூஞ்சை நோய்'}\n` +
+            `🌿 மேலாண்மை: ${parsed.remedy || parsed.treatment || 'தகுந்த பூச்சிக்கொல்லி தெளிக்கவும்'}\n` +
+            `🛡️ தடுப்பு முறை: ${parsed.prevention || 'நீர் தேங்குவதை தவிர்க்கவும்'}`
+          );
+        } else {
+          return (
+            `🌾 Disease Information:\n\n` +
+            `📌 Disease: ${parsed.name || parsed.disease || 'Crop Disease'}\n` +
+            `🔍 Symptoms: ${parsed.symptoms || 'Symptoms observed'}\n` +
+            `🔬 Cause: ${parsed.causes || parsed.cause || 'Pathogen infection'}\n` +
+            `🌿 Remedy: ${parsed.remedy || parsed.treatment || 'Apply suitable treatment'}\n` +
+            `🛡️ Prevention: ${parsed.prevention || 'Ensure crop rotation and good drainage'}`
+          );
+        }
+      }
+
+      // 3. Router Intent Object {"intent": "...", "emotion": "...", "crop": "...", ...}
+      if (!Array.isArray(parsed) && typeof parsed === 'object' && (parsed.intent || parsed.primary_intent)) {
+        const cropStr = parsed.crop || parsed.query_crop || '';
+        if (isTamil) {
+          return `வணக்கம் உழவரே! உங்கள் ${cropStr ? cropStr + ' ' : ''}பயிர் மற்றும் விவசாயக் கேள்விகளுக்கு உதவத் தயாராக உள்ளேன். உங்கள் கேள்வியைக் கேட்கவும்.`;
+        } else {
+          return `Hello farmer! I am ready to assist you with your ${cropStr ? cropStr + ' ' : ''}farming and crop guidance. How can I help you today?`;
+        }
+      }
+
+      // 4. Generic Key-Value JSON Object
+      if (!Array.isArray(parsed) && typeof parsed === 'object') {
+        const lines: string[] = [];
+        for (const [key, val] of Object.entries(parsed)) {
+          if (val && typeof val !== 'object') {
+            const cleanKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            lines.push(`• ${cleanKey}: ${val}`);
+          }
+        }
+        if (lines.length > 0) return lines.join('\n');
+      }
+    } catch {
+      /* ignore JSON parse error */
+    }
+  }
+
+  // Remove any raw JSON snippet artifacts
+  return cleaned
+    .replace(/\{"intent"[^}]+\}/gi, '')
+    .replace(/\[\s*\{"name":[^\]]+\}\s*\]/gi, '')
+    .trim();
+};
 
 // Unified LLM fallback: routes through Backend Proxy (CORS safe) and falls back to Groq
 const llmFallback = async (
   messages: Array<{ role: string; content: string }>,
   temperature: number = 0.7,
-  maxTokens: number = 1024
+  maxTokens: number = 1024,
+  language: string = 'english'
 ): Promise<string | null> => {
   const proxyEndpoints = [
-    `${API_BASE_URL}/api/nvidia/chat`,
-    'http://127.0.0.1:8000/api/nvidia/chat',
-    'http://localhost:8000/api/nvidia/chat'
+    `${API_BASE_URL}/api/nvidia/chat`
   ];
 
   // Try Backend NVIDIA NIM Proxy (CORS safe, multi-model cascading server side)
@@ -100,7 +208,7 @@ const llmFallback = async (
         const text = data.choices?.[0]?.message?.content;
         if (text) {
           console.log('[LLM] NVIDIA NIM Proxy OK');
-          return text;
+          return sanitizeFarmerResponse(text, language);
         }
       }
     } catch {
@@ -108,10 +216,10 @@ const llmFallback = async (
     }
   }
 
-  // Direct Groq fallback (Supports browser fetch with native CORS headers)
+  // Direct Groq fallback if frontend has Groq API Key
   if (GROQ_API_KEY) {
     try {
-      console.log('[LLM] Trying Groq direct fallback...');
+      console.log('[LLM] Trying Groq Direct API');
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -128,10 +236,13 @@ const llmFallback = async (
       if (res.ok) {
         const data = await res.json();
         const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
+        if (text) {
+          console.log('[LLM] Groq Direct API OK');
+          return sanitizeFarmerResponse(text, language);
+        }
       }
-    } catch (err) {
-      console.warn('[LLM] Groq fallback failed:', err);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -205,7 +316,7 @@ ${languageInstruction}`;
         const text = response.text;
         const firstLines = text.split('\n').slice(0, 4).join(' ');
         storeRecentDisease(firstLines.substring(0, 100), "92%", registeredCrop);
-        return text;
+        return sanitizeFarmerResponse(text, language);
       }
     }
   } catch (err) {
@@ -223,12 +334,12 @@ ${languageInstruction}`;
         role: 'user',
         content: `${structuredPrompt}\n\n[Image uploaded by farmer growing ${registeredCrop || 'Crop'}]`
       }
-    ], 0.3, 1500);
+    ], 0.3, 1500, language);
 
     if (fallbackText) {
       const firstLines = fallbackText.split('\n').slice(0, 4).join(' ');
       storeRecentDisease(firstLines.substring(0, 100), "90%", registeredCrop);
-      return fallbackText;
+      return sanitizeFarmerResponse(fallbackText, language);
     }
   } catch (err) {
     console.warn('[Disease] LLM proxy fallback error:', err);
@@ -254,12 +365,16 @@ ${languageInstruction}`;
       if (groqRes.ok) {
         const data = await groqRes.json();
         const text = data.choices?.[0]?.message?.content;
-        if (text) return text;
+        if (text) return sanitizeFarmerResponse(text, language);
       }
     }
   } catch { /* ignore */ }
 
-  return "Unable to analyze the image right now. Please check your internet connection or try again.";
+  const defaultErrorMsg = language === 'tamil' || language === 'ta'
+    ? "படத்தின் அடிப்படையில் உறுதியாக நோய் கண்டறிய முடியவில்லை. தயவுசெய்து தெளிவான இலையின் படத்தை பதிவேற்றவும் அல்லது உள்ளூர் வேளாண்மை அலுவலரை அணுகவும்."
+    : "Unable to analyze the image clearly right now. Please upload a clear leaf image or check with your local agriculture officer.";
+
+  return sanitizeFarmerResponse(defaultErrorMsg, language);
 };
 
 export const analyzePlantDisease = identifyPlantDisease;
@@ -317,10 +432,135 @@ Provide top 3 crop recommendations with expected yield and practical farming adv
 
 export const getFarmerChatResponse = async (message: string, language: string = 'english', imageBase64?: string): Promise<string> => {
   const languageInstruction = getLanguageInstruction(language);
-  const farmerContextPrompt = buildFarmerContextPrompt();
+  const profile = getStoredFarmerProfile();
+  const district = profile.location || profile.district || 'Thanjavur';
+  const registeredCrop = profile.crop_type || 'Paddy';
+  const state = profile.state || 'Tamil Nadu';
+
+  // ── 1. MULTILINGUAL CROP EXTRACTION FROM MESSAGE OR PROFILE ──
+  const textLower = message.toLowerCase();
+  const CROP_MAP: Record<string, string> = {
+    'உருளைக்கிழங்கு': 'Potato', 'உருளை': 'Potato', 'potato': 'Potato', 'aloo': 'Potato', 'ஆலூ': 'Potato',
+    'தக்காளி': 'Tomato', 'tomato': 'Tomato', 'tamatar': 'Tomato',
+    'நெல்': 'Paddy', 'நெல்லு': 'Paddy', 'அரிசி': 'Paddy', 'paddy': 'Paddy', 'rice': 'Paddy',
+    'வெங்காயம்': 'Onion', 'onion': 'Onion', 'pyaz': 'Onion',
+    'கத்தரி': 'Brinjal', 'கத்தரிக்காய்': 'Brinjal', 'brinjal': 'Brinjal', 'eggplant': 'Brinjal',
+    'மிளகாய்': 'Chilli', 'chilli': 'Chilli', 'chili': 'Chilli', 'mirchi': 'Chilli',
+    'பருத்தி': 'Cotton', 'cotton': 'Cotton',
+    'சோளம்': 'Maize', 'மக்காசோளம்': 'Maize', 'maize': 'Maize', 'corn': 'Maize',
+    'வாழை': 'Banana', 'வாழைக்காய்': 'Banana', 'banana': 'Banana',
+    'கேரட்': 'Carrot', 'carrot': 'Carrot',
+    'கரும்பு': 'Sugarcane', 'sugarcane': 'Sugarcane',
+    'வெண்டை': 'Okra', 'வெண்டைக்காய்': 'Okra', 'okra': 'Okra', 'bhindi': 'Okra',
+    'மஞ்சள்': 'Turmeric', 'turmeric': 'Turmeric',
+    'கடலை': 'Groundnut', 'நிலக்கடலை': 'Groundnut', 'groundnut': 'Groundnut', 'peanut': 'Groundnut'
+  };
+
+  let detectedCropInMessage = '';
+  for (const [kw, cropName] of Object.entries(CROP_MAP)) {
+    if (textLower.includes(kw)) {
+      detectedCropInMessage = cropName;
+      break;
+    }
+  }
+  const effectiveCrop = detectedCropInMessage || registeredCrop;
+
+  // ── 2. SMART INTENT DETECTION (MULTILINGUAL & TANGLISH) ──
+  const isWeather = /weather|rain|மழை|வானிலை|forecast|மழையா|வருமா|temp|humidity|wind|मौसम|बारिश|వర్షం|ಮಳೆ|മഴ/i.test(textLower);
+  const isMarket = /price|விலை|rate|market|சந்தை|cost|quintal|₹|per kg|மூல்ய|தாம்|பெல|வில|மண்டி|mandi/i.test(textLower);
+  const isNews = /news|செய்தி|update|latest|today.*news|அரசு|scheme|திட்டம்|समाचार|खबर|వார்త|సుದ್ದಿ|വാർത്ത/i.test(textLower);
+  const isFertilizer = /fertilizer|உரம்|manure|npk|urea|dap|potash|உரங்கள்/i.test(textLower);
+  const isCultivation = /வளர்க்க|பயிரிட|நடவு|என்ன பண்ணலாம்|எப்படி வளர்ப்பது|சாகுபடி|sow|plant|grow|cultivat|care|guidance/i.test(textLower);
+  const isDisease = /disease|blight|rot|wilt|spot|pest|fungus|insect|நோய்|பூச்சி|அறிகுறி/i.test(textLower) && !isCultivation;
+  const isPrevention = /prevent|prevention|தடுப்பு|முன்னெச்சரிக்கை|பாதுகாப்பு/i.test(textLower);
+  const isNatural = /natural|organic|இயற்கை|மூலிகை|பஞ்சகவ்யா|நீமாஸ்திரம்/i.test(textLower);
+  const isChemical = /chemical|pesticide|fungicide|மருந்து|ரசாயனம்|ஸ்ப்ரே|spray/i.test(textLower);
+
+  // ── 3. FETCH LIVE DATA (MULTI-PART QUERY HANDLING) ──
+  let liveDataContext = '';
+  try {
+    const fetches: Promise<string>[] = [];
+
+    if (isWeather) {
+      fetches.push(fetchLiveWeatherForContext(district));
+    }
+    if (isMarket) {
+      fetches.push(fetchLiveMarketForContext(effectiveCrop, district));
+    }
+    if (isNews) {
+      fetches.push(fetchLiveNewsForContext(state, language));
+    }
+
+    // For general farming queries, include background weather context
+    if (!isWeather && !isMarket && !isNews) {
+      fetches.push(fetchLiveWeatherForContext(district).catch(() => ''));
+    }
+
+    const results = await Promise.allSettled(fetches);
+    const resolved = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && !!r.value)
+      .map(r => r.value);
+    liveDataContext = resolved.join('\n\n');
+  } catch (err) {
+    console.warn('[Chat] Live data fetch error:', err);
+  }
+
+  // ── 4. BUILD ENRICHED FARMER CONTEXT ──
+  const profileWithEffectiveCrop = { ...profile, crop_type: effectiveCrop };
+  let farmerContextPrompt: string;
+  if (liveDataContext) {
+    const weatherPart = liveDataContext.includes('Temperature') ? liveDataContext.split('\n\n')[0] : 'Live weather data active.';
+    const marketPart = liveDataContext.includes('Market Data') ? liveDataContext.split('\n\n').find(s => s.includes('Market')) || '' : 'Agmarknet live mandi prices active.';
+    farmerContextPrompt = buildFarmerContextPrompt(profileWithEffectiveCrop, weatherPart, marketPart);
+
+    const newsPart = liveDataContext.includes('Agriculture News') ? '\n\n' + liveDataContext.split('\n\n').find(s => s.includes('News')) : '';
+    if (newsPart) farmerContextPrompt += newsPart;
+  } else {
+    farmerContextPrompt = buildFarmerContextPrompt(profileWithEffectiveCrop);
+  }
+
+  // ── 5. INTENT-SPECIFIC RESPONSE GUIDANCE ──
+  let intentInstruction = `Explicit User Question: "${message}"\nTarget Crop for Question: ${effectiveCrop}\nTarget Location: ${district}, ${state}\n`;
+
+  if (isCultivation) {
+    intentInstruction += `\nINTENT: Crop Cultivation & Planting Guidance for ${effectiveCrop}. Provide step-by-step land preparation, planting, irrigation, and initial care advice for growing ${effectiveCrop}. Answer directly what the farmer asked without giving irrelevant disease warnings unless asked.`;
+  }
+  if (isWeather) {
+    intentInstruction += `\nINTENT: Weather Query. Use the LIVE WEATHER DATA provided. State temp, humidity, rain chance, and farming impact (e.g. if rain > 50%, advise against spraying). Do NOT invent weather.`;
+  }
+  if (isMarket) {
+    intentInstruction += `\nINTENT: Market Price Query. Use the LIVE MARKET DATA provided for ${effectiveCrop} in ${district}. Include market name, min, modal, max prices per quintal/kg, and date. If live price is unavailable, state clearly that live price data is not currently available for this market. Do NOT fabricate prices.`;
+  }
+  if (isNews) {
+    intentInstruction += `\nINTENT: Agricultural News Query. Summarize real headlines for ${state}. Do NOT invent news stories.`;
+  }
+  if (isFertilizer) {
+    intentInstruction += `\nINTENT: Fertilizer Guidance for ${effectiveCrop}. Provide organic compost, NPK basal and top-dressing tips, application timing, and advise soil testing for precise dosage. Do NOT ask "which crop" because crop is already ${effectiveCrop}.`;
+  }
+  if (isDisease) {
+    intentInstruction += `\nINTENT: Disease Guidance for ${effectiveCrop}. Structure response clearly:
+🌱 பயிர்: ${effectiveCrop}
+🦠 நோய்:
+🔍 அறிகுறிகள்:
+❓ காரணம்:
+🛡️ தடுப்பு:
+🌿 இயற்கை மேலாண்மை:
+🧪 ரசாயன மேலாண்மை:
+⚠️ குறிப்பு:`;
+  }
+  if (isNatural) {
+    intentInstruction += `\nINTENT: Natural/Organic Remedy for ${effectiveCrop}. Detail: 🌿 Remedy, 🧪 Preparation, 🌱 Application, ⏱️ Frequency, ⚠️ Precautions.`;
+  }
+  if (isChemical) {
+    intentInstruction += `\nINTENT: Chemical Treatment for ${effectiveCrop}. Detail active ingredient and target pest. Add disclaimer: "Follow application dosage instructions printed on the product label or consult local agriculture officer."`;
+  }
+
+  intentInstruction += `\nCRITICAL FORMATTING MANDATE:
+- Respond ONLY in natural, spoken-style human text in the requested language (${language}).
+- NEVER output raw JSON, database arrays, or developer objects.
+- NEVER use markdown code fences like \`\`\`json.`;
 
   const parts: any[] = [{ text: message }];
-
   if (imageBase64) {
     parts.unshift({
       inlineData: {
@@ -330,7 +570,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
     });
   }
 
-  const systemInstructionCombined = `${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${languageInstruction}`;
+  const systemInstructionCombined = `${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${intentInstruction}\n\n${languageInstruction}`;
 
   const config = {
     model: 'gemini-2.0-flash',
@@ -344,7 +584,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
   try {
     if (import.meta.env.VITE_GEMINI_API_KEY) {
       const response = await ai.models.generateContent(config);
-      if (response.text) return response.text;
+      if (response.text) return sanitizeFarmerResponse(response.text, language);
     }
   } catch (primaryError: any) {
     console.warn('[Chat] Primary key failed:', primaryError?.message || primaryError);
@@ -354,7 +594,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
   if (aiFallback && import.meta.env.VITE_GEMINI_VOICE_KEY) {
     try {
       const response = await aiFallback.models.generateContent(config);
-      if (response.text) return response.text;
+      if (response.text) return sanitizeFarmerResponse(response.text, language);
     } catch (fallbackError: any) {
       console.warn('[Chat] Fallback key also failed:', fallbackError?.message || fallbackError);
     }
@@ -370,13 +610,14 @@ export const getFarmerChatResponse = async (message: string, language: string = 
       },
       { role: 'user', content: message }
     ],
-    0.7, 1024
+    0.7, 1024, language
   );
-  if (fallbackText) return fallbackText;
+  if (fallbackText) return sanitizeFarmerResponse(fallbackText, language);
 
-  return language === 'tamil' || language === 'ta'
+  const defaultMsg = language === 'tamil' || language === 'ta'
     ? "மன்னிக்கவும், இப்போது இந்த கேள்விக்கு பதிலளிக்க இயலவில்லை. உங்கள் அருகில் உள்ள வேளாண்மை அதிகாரியிடம் தொடர்பு கொள்ளவும்."
     : "I don't have reliable information on this right now. Please check with your local agriculture officer.";
+  return sanitizeFarmerResponse(defaultMsg, language);
 };
 
 export const getGroundingData = async (prompt: string, tools: any[], language: string = 'english'): Promise<{ text: string, links: any[] }> => {

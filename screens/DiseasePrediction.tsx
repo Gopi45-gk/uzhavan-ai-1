@@ -564,7 +564,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
 
       // Layer 2: NVIDIA NIM via Backend Proxy (server-side, no CORS)
       if (!responseText.trim()) {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiUrl = import.meta.env.VITE_API_URL || '';
         try {
           console.log('[Disease] Trying NVIDIA NIM via Backend Proxy...');
           const nimRes = await fetch(`${apiUrl}/api/nvidia/chat`, {

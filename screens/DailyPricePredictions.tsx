@@ -236,23 +236,33 @@ const VARIETY_TRANSLATION_MAP: Record<string, Record<string, string>> = {
     'sharbati': { tamil: 'சர்பதி', hindi: 'शरबती', telugu: 'శరబతి', kannada: 'ಶರಬತಿ', malayalam: 'ശർബതി', english: 'SHARBATI' }
 };
 
+const NORMALIZE_LANG = (lang: string): string => {
+    const l = (lang || '').toLowerCase().trim();
+    if (l === 'ta' || l === 'tamil') return 'tamil';
+    if (l === 'hi' || l === 'hindi') return 'hindi';
+    if (l === 'te' || l === 'telugu') return 'telugu';
+    if (l === 'kn' || l === 'kannada') return 'kannada';
+    if (l === 'ml' || l === 'malayalam') return 'malayalam';
+    return 'english';
+};
+
 const getTranslatedCommodity = (commodity: string, lang: string): string => {
     if (!commodity) return '';
     const norm = commodity.toLowerCase().trim();
-    const l = lang.toLowerCase();
-    return COMMODITY_TRANSLATION_MAP[norm]?.[l] || COMMODITY_TRANSLATION_MAP[norm]?.['english'] || commodity.toUpperCase();
+    const l = NORMALIZE_LANG(lang);
+    return COMMODITY_TRANSLATION_MAP[norm]?.[l] || COMMODITY_TRANSLATION_MAP[norm]?.['english'] || commodity;
 };
 
 const getTranslatedVariety = (variety: string, lang: string): string => {
     if (!variety) return '';
     const norm = variety.toLowerCase().trim();
-    const l = lang.toLowerCase();
-    return VARIETY_TRANSLATION_MAP[norm]?.[l] || VARIETY_TRANSLATION_MAP[norm]?.['english'] || variety.toUpperCase();
+    const l = NORMALIZE_LANG(lang);
+    return VARIETY_TRANSLATION_MAP[norm]?.[l] || VARIETY_TRANSLATION_MAP[norm]?.['english'] || variety;
 };
 
 const getTranslatedMarket = (market: string, lang: string): string => {
     if (!market) return '';
-    const l = lang.toLowerCase();
+    const l = NORMALIZE_LANG(lang);
     if (l === 'tamil') {
         return market.replace(/APMC Fruit Market|Fruit Wholesale Mandi|APMC Market|Wholesale Market|Regulated Market|Mandi|Direct Purchase Centre \(DPC\)|Grain APMC/gi, 'சந்தை');
     } else if (l === 'hindi') {
@@ -264,7 +274,7 @@ const getTranslatedMarket = (market: string, lang: string): string => {
     } else if (l === 'malayalam') {
         return market.replace(/APMC Fruit Market|Fruit Wholesale Mandi|APMC Market|Wholesale Market|Regulated Market|Mandi|Direct Purchase Centre \(DPC\)|Grain APMC/gi, 'മാർക്കറ്റ്');
     }
-    return market.toUpperCase();
+    return market;
 };
 
 const DailyPricePredictions: React.FC<Props> = ({ onBack, language, userLocation, t }) => {
@@ -366,10 +376,10 @@ const DailyPricePredictions: React.FC<Props> = ({ onBack, language, userLocation
                                 </div>
 
                                 <div>
-                                    <h4 className="text-lg font-[900] text-gray-800 uppercase tracking-tight">{getTranslatedCommodity(item.commodity, language)}</h4>
+                                    <h4 className="text-lg font-[900] text-gray-800 tracking-tight">{getTranslatedCommodity(item.commodity, language)}</h4>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase tracking-wide">{getTranslatedVariety(item.variety, language)}</span>
-                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wide flex items-center gap-1">
+                                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full tracking-wide">{getTranslatedVariety(item.variety, language)}</span>
+                                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full tracking-wide flex items-center gap-1">
                                             <MapPin size={10} strokeWidth={3} /> {getTranslatedMarket(item.market, language)}
                                         </span>
                                     </div>

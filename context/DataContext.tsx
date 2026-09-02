@@ -130,7 +130,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, userCoords
             const state = userState || "Tamil Nadu";
 
             // Use environment variable for API URL (production ready)
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+            const apiUrl = import.meta.env.VITE_API_URL || '';
 
             const response = await fetch(`${apiUrl}/api/v1/dashboard/?lat=${lat}&lon=${lon}&state=${encodeURIComponent(state)}&lang=${langCode}`, {
                 method: 'GET',

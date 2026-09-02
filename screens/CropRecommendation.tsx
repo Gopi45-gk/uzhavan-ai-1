@@ -32,13 +32,11 @@ const CropRecommendation: React.FC<Props> = ({ onBack, language, t }) => {
         (error) => {
           console.warn('Geolocation error:', error);
           setLocating(false);
-          alert('Could not fetch GPS location. Defaulting to Chennai.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
       setLocating(false);
-      alert('Geolocation is not supported by your browser.');
     }
   };
 
@@ -48,7 +46,7 @@ const CropRecommendation: React.FC<Props> = ({ onBack, language, t }) => {
     setResult(null);
     setYieldData(null);
 
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_BASE = import.meta.env.VITE_API_URL || '';
 
     try {
       const dataPayload = {
