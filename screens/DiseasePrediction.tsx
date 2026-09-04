@@ -638,39 +638,58 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
         responseText = '[]';
       }
 
-      if (!responseText.trim()) responseText = '[]';
-
-      // Clean JSON from markdown fences
-      if (responseText.includes('```json')) {
-        responseText = responseText.split('```json')[1].split('```')[0];
-      } else if (responseText.includes('```')) {
-        responseText = responseText.split('```')[1].split('```')[0];
-      }
-
-      // Repair truncated JSON: find last complete object
+      // Clean and extract JSON array from text response (handles conversational intro/outro text)
       let parsedDiseases: Disease[] = [];
       try {
-        parsedDiseases = JSON.parse(responseText.trim());
-      } catch {
-        // Try to repair: truncate to last complete "}"
-        console.warn('[Disease] JSON repair attempt...');
-        let fixed = responseText.trim();
-        // Find last complete disease object
-        const lastBrace = fixed.lastIndexOf('}');
-        if (lastBrace > 0) {
-          fixed = fixed.substring(0, lastBrace + 1) + ']';
-          // Ensure it starts with [
-          const firstBracket = fixed.indexOf('[');
-          if (firstBracket >= 0) {
-            fixed = fixed.substring(firstBracket);
-          }
+        let cleanText = responseText.trim();
+        if (cleanText.includes('```json')) {
+          cleanText = cleanText.split('```json')[1].split('```')[0].trim();
+        } else if (cleanText.includes('```')) {
+          cleanText = cleanText.split('```')[1].split('```')[0].trim();
+        }
+
+        const firstBracket = cleanText.indexOf('[');
+        const lastBracket = cleanText.lastIndexOf(']');
+
+        if (firstBracket !== -1 && lastBracket > firstBracket) {
+          const jsonArrStr = cleanText.substring(firstBracket, lastBracket + 1);
           try {
-            parsedDiseases = JSON.parse(fixed);
-            console.log('[Disease] JSON repaired, got', parsedDiseases.length, 'diseases');
-          } catch {
-            console.error('[Disease] JSON repair failed, using empty array');
+            parsedDiseases = JSON.parse(jsonArrStr);
+            console.log('[Disease] Clean JSON parse OK, got', parsedDiseases.length, 'diseases');
+          } catch (jsonErr) {
+            console.warn('[Disease] Direct JSON slice parse failed, attempting repair:', jsonErr);
+            // Repair truncated JSON array: find last complete object brace and close array
+            const lastBrace = jsonArrStr.lastIndexOf('}');
+            if (lastBrace > 0) {
+              const repaired = jsonArrStr.substring(0, lastBrace + 1) + ']';
+              try {
+                parsedDiseases = JSON.parse(repaired);
+                console.log('[Disease] JSON repaired successfully, items:', parsedDiseases.length);
+              } catch (repErr) {
+                console.error('[Disease] JSON repair failed:', repErr);
+              }
+            }
+          }
+        } else if (firstBracket !== -1) {
+          // Truncated response without closing bracket
+          const jsonArrStr = cleanText.substring(firstBracket);
+          const lastBrace = jsonArrStr.lastIndexOf('}');
+          if (lastBrace > 0) {
+            const repaired = jsonArrStr.substring(0, lastBrace + 1) + ']';
+            try {
+              parsedDiseases = JSON.parse(repaired);
+              console.log('[Disease] Truncated JSON repaired, items:', parsedDiseases.length);
+            } catch { /* ignore */ }
           }
         }
+      } catch (err) {
+        console.error('[Disease] JSON parsing exception:', err);
+      }
+
+      // CRITICAL GUARANTEE: Fallback to built-in offline disease database if AI returns empty array
+      if (!parsedDiseases || parsedDiseases.length === 0) {
+        console.log('[Disease] AI returned empty array — using built-in database for', cropName);
+        parsedDiseases = getOfflineDiseases(cropName);
       }
 
       setDiseases(parsedDiseases);
