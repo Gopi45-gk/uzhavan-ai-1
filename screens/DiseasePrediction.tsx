@@ -40,6 +40,7 @@ function getCachedDiseases(cropName: string, lang: string): Disease[] | null {
 
 function setCachedDiseases(cropName: string, lang: string, diseases: Disease[]) {
   try {
+    if (!diseases || diseases.length === 0) return;
     localStorage.setItem(`${DISEASE_CACHE_KEY}_${cropName}_${lang}`, JSON.stringify({
       diseases,
       timestamp: Date.now()
@@ -740,7 +741,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
           <Leaf size={20} className="text-[#2da95c]" />
           {userCrop}
         </h3>
-        <p className="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wider">
+        <p className="text-xs font-bold text-gray-500 mt-1 tracking-wider">
           {t('common_diseases') || 'COMMON DISEASES & REMEDIES'}
         </p>
       </div>
@@ -775,7 +776,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
               <div className="px-4 pb-4 space-y-3 animate-in fade-in duration-200">
                 {/* Symptoms */}
                 <div className="bg-amber-50/80 rounded-xl p-3 border border-amber-100">
-                  <p className="text-[10px] font-[900] text-amber-700 uppercase tracking-widest mb-1">
+                  <p className="text-[10px] font-[900] text-amber-700 tracking-widest mb-1">
                     {t('symptoms') || 'SYMPTOMS'}
                   </p>
                   <p className="text-xs font-bold text-gray-700 leading-relaxed">{disease.symptoms}</p>
@@ -783,7 +784,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
 
                 {/* Causes */}
                 <div className="bg-blue-50/80 rounded-xl p-3 border border-blue-100">
-                  <p className="text-[10px] font-[900] text-blue-700 uppercase tracking-widest mb-1">
+                  <p className="text-[10px] font-[900] text-blue-700 tracking-widest mb-1">
                     {t('causes') || 'CAUSES'}
                   </p>
                   <p className="text-xs font-bold text-gray-700 leading-relaxed">{disease.causes}</p>
@@ -791,7 +792,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
 
                 {/* Remedy */}
                 <div className="bg-green-50/80 rounded-xl p-3 border border-green-100">
-                  <p className="text-[10px] font-[900] text-[#2da95c] uppercase tracking-widest mb-1">
+                  <p className="text-[10px] font-[900] text-[#2da95c] tracking-widest mb-1">
                     {t('remedy') || 'REMEDY'}
                   </p>
                   <p className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">{disease.remedy}</p>
@@ -799,7 +800,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
 
                 {/* Prevention */}
                 <div className="bg-purple-50/80 rounded-xl p-3 border border-purple-100">
-                  <p className="text-[10px] font-[900] text-purple-700 uppercase tracking-widest mb-1">
+                  <p className="text-[10px] font-[900] text-purple-700 tracking-widest mb-1">
                     {t('prevention') || 'PREVENTION'}
                   </p>
                   <p className="text-xs font-bold text-gray-700 leading-relaxed">{disease.prevention}</p>
@@ -813,7 +814,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
       {/* Back Button */}
       <button
         onClick={reset}
-        className="mt-4 w-full bg-[#2da95c] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase tracking-tighter shadow-md active:scale-95 transition-all"
+        className="mt-4 w-full bg-[#2da95c] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 tracking-tighter shadow-md active:scale-95 transition-all"
       >
         <RotateCcw size={20} />
         {t('try_another') || 'TRY AGAIN'}
@@ -854,7 +855,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
           </div>
           {/* Top label */}
           <div className="absolute top-6 left-0 right-0 text-center">
-            <p className="text-white font-black text-sm uppercase tracking-wider drop-shadow-lg">
+            <p className="text-white font-black text-sm tracking-wider drop-shadow-lg">
               📸 {t('capture_plant') || 'Point at the plant & capture'}
             </p>
           </div>
@@ -884,7 +885,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
           <ArrowLeft size={36} strokeWidth={3} />
         </button>
 
-        <h1 className="absolute left-0 right-0 text-[26px] font-[1000] text-black uppercase tracking-tighter text-center leading-[1.05] drop-shadow-sm select-none pointer-events-none">
+        <h1 className="absolute left-0 right-0 text-[26px] font-[1000] text-black tracking-tighter text-center leading-[1.05] drop-shadow-sm select-none pointer-events-none">
           {t('home_disease')}
         </h1>
 
