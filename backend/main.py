@@ -998,8 +998,9 @@ async def nvidia_chat_proxy(request: Request):
     req_messages = data.get("messages", [])
     req_temp = data.get("temperature", 0.1)
     req_tokens = data.get("max_tokens", 150)
+    req_lang = str(data.get("language", "ta")).lower()
 
-    def clean_llm_json(res_json):
+    def clean_llm_json(res_json, lang="ta"):
         try:
             choices = res_json.get("choices", [])
             if choices and "message" in choices[0]:
@@ -1010,15 +1011,31 @@ async def nvidia_chat_proxy(request: Request):
                     content = rc
 
                 if any(w in content for w in ["The user", "user is asking", "user asks", "thinking process", "We need to", "Okay,", "Let's craft", "So respond", "So answer:"]):
-                    tamil_blocks = [b.strip(' "\'') for b in re.findall(r'[\u0B80-\u0BFF][^\n"]*', content) if len(re.findall(r'[\u0B80-\u0BFF]', b)) > 5]
-                    if len(tamil_blocks) > 1:
-                        # The last block is the generated answer (prior blocks are usually echoed question)
-                        content = tamil_blocks[-1]
-                    elif len(tamil_blocks) == 1 and not any(w in tamil_blocks[0] for w in ["The user", "meaning", "asking", "translate"]):
-                        content = tamil_blocks[0]
+                    lang_clean = (lang or "ta").lower()
+                    blocks = []
+                    if lang_clean.startswith("ta") or lang_clean == "tamil":
+                        blocks = [b.strip(' "\'') for b in re.findall(r'[\u0B80-\u0BFF][^\n"]*', content) if len(re.findall(r'[\u0B80-\u0BFF]', b)) > 5]
+                    elif lang_clean.startswith("hi") or lang_clean == "hindi":
+                        blocks = [b.strip(' "\'') for b in re.findall(r'[\u0900-\u097F][^\n"]*', content) if len(re.findall(r'[\u0900-\u097F]', b)) > 5]
+                    elif lang_clean.startswith("te") or lang_clean == "telugu":
+                        blocks = [b.strip(' "\'') for b in re.findall(r'[\u0C00-\u0C7F][^\n"]*', content) if len(re.findall(r'[\u0C00-\u0C7F]', b)) > 5]
+                    elif lang_clean.startswith("kn") or lang_clean == "kannada":
+                        blocks = [b.strip(' "\'') for b in re.findall(r'[\u0C80-\u0CFF][^\n"]*', content) if len(re.findall(r'[\u0C80-\u0CFF]', b)) > 5]
+                    elif lang_clean.startswith("ml") or lang_clean == "malayalam":
+                        blocks = [b.strip(' "\'') for b in re.findall(r'[\u0D00-\u0D7F][^\n"]*', content) if len(re.findall(r'[\u0D00-\u0D7F]', b)) > 5]
                     else:
-                        sub = content.split("So answer:")[-1] if "So answer:" in content else (content.split("In Tamil:")[-1] if "In Tamil:" in content else content)
-                        lines = [l.strip() for l in sub.split("\n") if re.search(r"[\u0B80-\u0BFF]", l)]
+                        sub = content.split("So answer:")[-1] if "So answer:" in content else (content.split("So respond:")[-1] if "So respond:" in content else content)
+                        lines = [l.strip() for l in sub.split(".") if l.strip() and not any(w in l for w in ["The user", "user is", "thinking", "We need to", "Okay,"])]
+                        if lines:
+                            blocks = [". ".join(lines)]
+
+                    if len(blocks) > 1:
+                        content = blocks[-1]
+                    elif len(blocks) == 1 and not any(w in blocks[0] for w in ["The user", "meaning", "asking", "translate"]):
+                        content = blocks[0]
+                    else:
+                        sub = content.split("So answer:")[-1] if "So answer:" in content else content
+                        lines = [l.strip() for l in sub.split("\n") if l.strip() and not any(w in l for w in ["The user", "user is", "thinking", "We need to"])]
                         if lines:
                             content = lines[-1]
                 msg["content"] = content
@@ -1042,7 +1059,7 @@ async def nvidia_chat_proxy(request: Request):
                 timeout=6
             )
             if res.status_code == 200:
-                return clean_llm_json(res.json())
+                return clean_llm_json(res.json(), req_lang)
     except Exception as e:
         print(f"[NVIDIA Chat Proxy] Primary model ({req_model}) error: {e}")
 
@@ -1056,7 +1073,7 @@ async def nvidia_chat_proxy(request: Request):
                 timeout=6
             )
             if res.status_code == 200:
-                return clean_llm_json(res.json())
+                return clean_llm_json(res.json(), req_lang)
     except Exception as e:
         print(f"[NVIDIA Chat Proxy] Nemotron Ultra error: {e}")
 
@@ -1071,7 +1088,7 @@ async def nvidia_chat_proxy(request: Request):
                 timeout=6
             )
             if res.status_code == 200:
-                return clean_llm_json(res.json())
+                return clean_llm_json(res.json(), req_lang)
     except Exception as e:
         print(f"[NVIDIA Chat Proxy] Nemotron Super error: {e}")
 
@@ -1086,7 +1103,7 @@ async def nvidia_chat_proxy(request: Request):
                 timeout=10
             )
             if res.status_code == 200:
-                return res.json()
+                return clean_llm_json(res.json(), req_lang)
     except Exception as e:
         print(f"[NVIDIA Chat Proxy] Groq fallback error: {e}")
 

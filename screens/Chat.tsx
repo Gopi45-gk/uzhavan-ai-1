@@ -259,7 +259,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
     setShowHistory(false);
 
     try {
-      const activeLang = currentLanguage || language || 'tamil';
+      const activeLang = currentLanguage || language || (typeof localStorage !== 'undefined' ? localStorage.getItem('uzhavan_app_language') || localStorage.getItem('uzhavan_selected_language') : null) || 'tamil';
       let responseText = '';
       const cleanedQuery = (currentText || '').replace(/[*#_`]/g, '').trim();
       const profile = getStoredFarmerProfile();
@@ -276,7 +276,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
 
       // ── FAST PATH: IMMEDIATE OFFLINE RESOLUTION (0ms latency, zero timeout) ──
       if (!navigator.onLine) {
-        console.log('[Chatbot] Offline mode detected — resolving instantly via offline intelligence');
+        console.log('[Chatbot] Offline mode detected — resolving instantly via offline intelligence in language:', activeLang);
         if (currentImage) {
           responseText = await analyzePlantDiseaseOffline(currentImage, profileDetails.registeredCrop || 'general', activeLang);
         } else {
@@ -292,7 +292,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         kannada: 'Kannada (ಕನ್ನಡ)', kn: 'Kannada (ಕನ್ನಡ)',
         malayalam: 'Malayalam (മലയാളം)', ml: 'Malayalam (മലയാളം)',
       };
-      const targetLang = langNames[activeLang.toLowerCase()] || 'Tamil (தமிழ்)';
+      const targetLang = langNames[activeLang.toLowerCase()] || (activeLang.toLowerCase().startsWith('en') ? 'English' : 'Tamil (தமிழ்)');
 
       const farmerContext = [
         `You are UZHAVAN AI (உழவன் AI), an expert agricultural assistant helping an Indian farmer.`,
@@ -302,25 +302,27 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         `- Crop: ${profileDetails.registeredCrop}`,
         `- Soil: ${profileDetails.soilType}`,
         `MANDATORY LANGUAGE:`,
-        `You MUST respond STRICTLY and ONLY in ${targetLang}. Never reply in English when ${targetLang} is requested.`,
+        `You MUST respond STRICTLY and ONLY in ${targetLang}. All output text must be in ${targetLang}. Do NOT output in English or any other language unless ${targetLang} is English.`,
         `RULES:`,
         `1. Provide direct, practical, and accurate farming advice for the farmer's question.`,
         `2. NEVER output meta-commentary, thinking process, translation notes, or phrases like "We need to answer", "The user asks", "According to instructions".`,
         `3. NEVER mention AI, model, API, backend, system, Groq, Gemini, or NVIDIA.`,
         `4. Give clear, actionable advice (varieties, soil preparation, planting, irrigation, fertilizer dosage, or pest management).`,
-        `5. Answer concisely in 2-3 clear, helpful sentences.`
+        `5. Answer concisely in 1-2 clear, helpful sentences.`
       ].join('\n');
+
+      const promptWithAnchor = `INSTRUCTION: Begin your response IMMEDIATELY with the answer strictly in ${targetLang}. Do NOT write English thinking, do NOT write "We need to", output ONLY the final reply in ${targetLang}:\n\n${cleanedQuery}`;
 
       // 1. If singleton WebLLM model is already active and no image was uploaded, query WebLLM directly with timeout race
       const webLlm = getGlobalWebLlmEngine();
       if (!responseText && webLlm && !currentImage && cleanedQuery) {
         try {
           try { await webLlm.resetChat(true); } catch {}
-          console.log('[Chatbot WebLLM] Generating answer with strict boundaries (temp: 0.2, max_tokens: 300)...');
+          console.log('[Chatbot WebLLM] Generating answer with strict boundaries in ' + targetLang);
           const webLlmPromise = webLlm.chat.completions.create({
             messages: [
               { role: 'system', content: farmerContext },
-              { role: 'user', content: cleanedQuery }
+              { role: 'user', content: promptWithAnchor }
             ],
             temperature: 0.2,
             max_tokens: 300,
@@ -342,7 +344,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
       if (!responseText && !currentImage && cleanedQuery) {
         try {
           const apiUrl = getApiBaseUrl();
-          console.log('[Chatbot Backend LLM] Calling /api/chat with direct agricultural prompt...');
+          console.log('[Chatbot Backend LLM] Calling /api/chat in ' + targetLang);
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 12000);
           const langCfg = getLanguageConfig(activeLang);
@@ -350,10 +352,11 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              language: langCfg.code,
+              language: langCfg.code || activeLang,
+              farmer_context: farmerContext,
               messages: [
                 { role: 'system', content: farmerContext },
-                { role: 'user', content: cleanedQuery }
+                { role: 'user', content: promptWithAnchor }
               ],
               temperature: 0.3,
               max_tokens: 300,
@@ -396,33 +399,71 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         }
       }
 
-      // 5. Strict boundary enforcement, meta-thinking stripping, and markdown cleanup
+      // 5. Strict boundary enforcement, multi-language meta-thinking stripping, and cleanup
       if (responseText) {
-        // Strip meta-thinking / chain-of-thought leaked by LLMs (e.g. Llama 3)
-        const isTa = activeLang.toLowerCase().startsWith('ta');
-        if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:)/i.test(responseText)) {
-          const tamilBlocks = responseText.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
-          if (tamilBlocks && tamilBlocks.length > 0) {
-            const realTamil = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
-            if (realTamil.length > 0) {
-              responseText = realTamil.slice(0, 2).join(' ').trim();
-            } else {
-              responseText = '';
-            }
-          } else {
-            responseText = '';
+        const langLower = activeLang.toLowerCase();
+        const isTa = langLower.startsWith('ta') || langLower === 'tamil';
+        const isHi = langLower.startsWith('hi') || langLower === 'hindi';
+        const isTe = langLower.startsWith('te') || langLower === 'telugu';
+        const isKn = langLower.startsWith('kn') || langLower === 'kannada';
+        const isMl = langLower.startsWith('ml') || langLower === 'malayalam';
+        const isEn = langLower.startsWith('en') || langLower === 'english';
+
+        if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:|so respond|let'?s craft)/i.test(responseText)) {
+          if (isTa) {
+            const blocks = responseText.match(/[\u0B80-\u0BFF][^\n"]*/g);
+            if (blocks && blocks.length > 0) {
+              const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+              responseText = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+            } else { responseText = ''; }
+          } else if (isHi) {
+            const blocks = responseText.match(/[\u0900-\u097F][^\n"]*/g);
+            if (blocks && blocks.length > 0) {
+              const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+              responseText = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+            } else { responseText = ''; }
+          } else if (isTe) {
+            const blocks = responseText.match(/[\u0C00-\u0C7F][^\n"]*/g);
+            if (blocks && blocks.length > 0) {
+              const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+              responseText = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+            } else { responseText = ''; }
+          } else if (isKn) {
+            const blocks = responseText.match(/[\u0C80-\u0CFF][^\n"]*/g);
+            if (blocks && blocks.length > 0) {
+              const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+              responseText = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+            } else { responseText = ''; }
+          } else if (isMl) {
+            const blocks = responseText.match(/[\u0D00-\u0D7F][^\n"]*/g);
+            if (blocks && blocks.length > 0) {
+              const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+              responseText = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+            } else { responseText = ''; }
+          } else if (isEn) {
+            const sub = responseText.split(/so answer:|so respond:|let'?s craft:/i).pop() || responseText;
+            const lines = sub.split(/(?<=[.!?\n])\s+/).filter(l => !/(?:the user|we need to|instructions)/i.test(l));
+            responseText = lines.slice(0, 2).join(' ').trim();
           }
         }
 
-        // If responseText is empty or if Tamil was requested but no Tamil characters exist:
-        if (!responseText || (isTa && !/[\u0B80-\u0BFF]/.test(responseText))) {
+        // Language matching validation
+        const needsFallback = !responseText ||
+          (isTa && !/[\u0B80-\u0BFF]/.test(responseText)) ||
+          (isHi && !/[\u0900-\u097F]/.test(responseText)) ||
+          (isTe && !/[\u0C00-\u0C7F]/.test(responseText)) ||
+          (isKn && !/[\u0C80-\u0CFF]/.test(responseText)) ||
+          (isMl && !/[\u0D00-\u0D7F]/.test(responseText)) ||
+          (isEn && !/[a-zA-Z]/.test(responseText));
+
+        if (needsFallback) {
           responseText = getOfflineAgriculturalResponse(cleanedQuery, profileDetails, activeLang);
         }
 
         responseText = responseText.replace(/[*#_`]/g, '').trim();
         const sentences = responseText.split(/(?<=[.!?\n])\s+/).filter(Boolean);
-        if (sentences.length > 3) {
-          responseText = sentences.slice(0, 3).join(' ').trim();
+        if (sentences.length > 2) {
+          responseText = sentences.slice(0, 2).join(' ').trim();
         }
       }
 

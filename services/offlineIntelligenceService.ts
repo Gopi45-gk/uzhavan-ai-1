@@ -253,67 +253,91 @@ export const getOfflineAgriculturalResponse = (
 
   const cropKey = identifyCropKey(q, context?.crop);
   const crop = OFFLINE_CROP_DATABASE[cropKey] || OFFLINE_CROP_DATABASE.paddy;
-  const cropName = isTa ? (crop.name.ta || cropKey) : isHi ? (crop.name.hi || cropKey) : (crop.name.en || cropKey);
+  const cropName = isTa ? (crop.name.ta || cropKey) : isHi ? (crop.name.hi || cropKey) : isTe ? (crop.name.te || cropKey) : isKn ? (crop.name.kn || cropKey) : isMl ? (crop.name.ml || cropKey) : (crop.name.en || cropKey);
 
   // ── INTENT 1: FARMER REGISTRATION & IDENTITY ──
-  if (/நான் யார்|என் பெயர்|who am i|my name|mera naam/i.test(q)) {
-    const name = context?.farmerName || (isTa ? "விவசாயி" : "Farmer");
+  if (/நான் யார்|என் பெயர்|who am i|my name|mera naam|నా పేరు|ನನ್ನ ಹೆಸರು|എന്റെ പേര്/i.test(q)) {
+    const name = context?.farmerName || (isTa ? "விவசாயி" : isHi ? "किसान" : isTe ? "రైతు" : isKn ? "ರೈತ" : isMl ? "കർഷകൻ" : "Farmer");
     const dist = context?.district || "Tamil Nadu";
     if (isTa) return `உங்கள் பெயர் ${name}. நீங்கள் ${dist} மாவட்டத்தில் ${context?.cropTamil || cropName} சாகுபடி செய்யும் விவசாயியாக பதிவு செய்துள்ளீர்கள்.`;
     if (isHi) return `आपका नाम ${name} है। आप ${dist} क्षेत्र में ${cropName} की खेती करने वाले किसान हैं।`;
+    if (isTe) return `మీ పేరు ${name}. మీరు ${dist} ప్రాంతంలో ${cropName} సాగు చేసే రైతుగా నమోదై ఉన్నారు.`;
+    if (isKn) return `ನಿಮ್ಮ ಹೆಸರು ${name}. ನೀವು ${dist} ಪ್ರದೇಶದಲ್ಲಿ ${cropName} ಬೆಳೆಯುವ ರೈತರಾಗಿ ನೋಂದಾಯಿಸಿಕೊಂಡಿದ್ದೀರಿ.`;
+    if (isMl) return `നിങ്ങളുടെ പേര് ${name}. നിങ്ങൾ ${dist} പ്രദേശത്ത് ${cropName} കൃഷി ചെയ്യുന്ന കർഷകനായി രജിസ്റ്റർ ചെയ്തിട്ടുണ്ട്.`;
     return `Your name is ${name}. You are registered as a farmer growing ${cropName} in ${dist}.`;
   }
 
-  // ── INTENT 2: SOIL REQUIREMENTS (மண் / SOIL / MITTI) ──
-  if (/மண்|soil|மணல்|கரிசல்|வண்டல்|செம்மண்|நிலம்|mitti/i.test(q)) {
+  // ── INTENT 2: SOIL REQUIREMENTS (மண் / SOIL / MITTI / నేల / ಮಣ್ಣು / മണ്ണ്) ──
+  if (/மண்|soil|மணல்|கரிசல்|வண்டல்|செம்மண்|நிலம்|mitti|నేల|మట్టి|ಮಣ್ಣು|മണ്ണ്/i.test(q)) {
     if (isTa) return `${cropName} சாகுபடிக்கு உகந்த மண்: ${crop.soil}. நல்ல வடிகால் வசதி உறுதி செய்வது வேர் அழுகலைத் தடுக்கும்.`;
     if (isHi) return `${cropName} के लिए सर्वोत्तम मिट्टी: ${crop.soil}। जल निकासी का उचित प्रबंध करें।`;
+    if (isTe) return `${cropName} సాగుకు అనువైన నేల: ${crop.soil}. మంచి నీటి పారుదల వేరు కుళ్లును నివారిస్తుంది.`;
+    if (isKn) return `${cropName} ಬೆಳೆಗೆ ಸೂಕ್ತವಾದ ಮಣ್ಣು: ${crop.soil}. ಉತ್ತಮ ಒಳಚರಂಡಿ ಬೇರು ಕೊಳೆಯುವಿಕೆಯನ್ನು ತಡೆಯುತ್ತದೆ.`;
+    if (isMl) return `${cropName} കൃഷിക്ക് അനുയോജ്യമായ മണ്ണ്: ${crop.soil}. നല്ല നീർവാർച്ച വേരുചീയൽ തടയും.`;
     return `Optimal soil for ${crop.name.en}: ${crop.soil}. Good drainage is essential to avoid root rot.`;
   }
 
-  // ── INTENT 3: FERTILIZER SCHEDULE & DOSAGE (உரம் / DAP / NPK / UREA) ──
-  if (/உரம்|dap|npk|யூரியா|பொட்டாஷ்|fertilizer|khad|manure/i.test(q)) {
+  // ── INTENT 3: FERTILIZER SCHEDULE & DOSAGE (உரம் / DAP / NPK / UREA / ఎరువు / ಗೊಬ್ಬರ / വളം) ──
+  if (/உரம்|dap|npk|யூரியா|பொட்டாஷ்|fertilizer|khad|manure|ఎరువు|యూరియా|ಗೊಬ್ಬರ|ಯೂರಿಯಾ|വളം|യൂറിയ/i.test(q)) {
     if (isTa) return `${cropName} பயிருக்கான பரிந்துரைக்கப்பட்ட உர அளவு: ${crop.npk}. உரம் இட்டவுடன் மிதமான நீர்ப்பாசனம் செய்யவும்.`;
     if (isHi) return `${cropName} के लिए अनुशंसित खाद मात्रा: ${crop.npk}। खाद देने के बाद हल्की सिंचाई करें।`;
+    if (isTe) return `${cropName} పంటకు సిఫార్సు చేసిన ఎరువుల మోతాదు: ${crop.npk}. ఎరువు వేసిన తర్వాత తేలికపాటి నీటిపారుదల చేయండి.`;
+    if (isKn) return `${cropName} ಬೆಳೆಗೆ ಶಿಫಾರಸು ಮಾಡಿದ ರಸಗೊಬ್ಬರ ಪ್ರಮಾಣ: ${crop.npk}. ಗೊಬ್ಬರ ಹಾಕಿದ ನಂತರ ಲಘು ನೀರಾವರಿ ಮಾಡಿ.`;
+    if (isMl) return `${cropName} കൃഷിക്ക് ശുപാർശ ചെയ്യുന്ന വളപ്രയോഗം: ${crop.npk}. വളം ഇട്ടതിനു ശേഷം നേരിയ നനവ് നൽകുക.`;
     return `Recommended fertilizer schedule for ${crop.name.en}: ${crop.npk}. Apply moderate irrigation after application.`;
   }
 
-  // ── INTENT 4: PESTS, DISEASES & REMEDIES (நோய் / பூச்சி / PEST / DISEASE / மருந்து) ──
-  if (/நோய்|பூச்சி|புழு|கருகல்|வாடல்|அழுகல்|சுருட்டை|மருந்து|disease|pest|blight|rot|wilt|curl|fungus|spray/i.test(q)) {
+  // ── INTENT 4: PESTS, DISEASES & REMEDIES (நோய் / பூச்சி / PEST / DISEASE / மருந்து / తెగులు / ರೋಗ / രോഗം) ──
+  if (/நோய்|பூச்சி|புழு|கருகல்|வாடல்|அழுகல்|சுருட்டை|மருந்து|disease|pest|blight|rot|wilt|curl|fungus|spray|తెగులు|పురుగు|ರೋಗ|ಕೀಟ|രോഗം|കീടം/i.test(q)) {
     const org = crop.organicRemedy.replace(/\.+$/, '');
     const chem = crop.chemicalDosage.replace(/\.+$/, '');
     if (isTa) return `${cropName} பாதுகாப்புக்கு இயற்கை வழி: ${org}. தீவிர பாதிப்புக்கு: ${chem}.`;
     if (isHi) return `${cropName} रोग नियंत्रण: जैविक उपाय: ${org}। रासायनिक नियंत्रण: ${chem}।`;
+    if (isTe) return `${cropName} రక్షణకు సేంద్రీయ పద్ధతి: ${org}. తీవ్రమైన తెగులుకు: ${chem}.`;
+    if (isKn) return `${cropName} ರಕ್ಷಣೆಗೆ ಸಾವಯವ ಉಪಾಯ: ${org}. ತೀವ್ರ ಹಾನಿಗೆ: ${chem}.`;
+    if (isMl) return `${cropName} രോഗനിയന്ത്രണം: ജൈവ രീതി: ${org}. കീടബാധയ്ക്ക്: ${chem}.`;
     return `For ${crop.name.en} disease management: Organic control: ${org}. Chemical spray: ${chem}.`;
   }
 
   // ── INTENT 5: SOWING SEASON & SEED VARIETIES (விதை / ரகம் / பருவம் / சாகுபடி / வளர்க்க / SOW / VARIETY) ──
-  if (/விதை|ரகம்|பருவம்|எப்போது|நடவு|சாகுபடி|வளர்க்க|வளர்ப்பு|பயிரிட|sow|seed|variet|season|grow|plant|cultivat/i.test(q)) {
+  if (/விதை|ரகம்|பருவம்|எப்போது|நடவு|சாகுபடி|வளர்க்க|வளர்ப்பு|பயிரிட|sow|seed|variet|season|grow|plant|cultivat|విత్తనం|విత్తనాలు|ಬೀಜ|വിത്ത്/i.test(q)) {
     const vars = crop.varieties.slice(0, 3).join(", ");
     if (isTa) return `${cropName} சிறந்த ரகங்கள்: ${vars}. உகந்த விதைப்பு பருவம்: ${crop.sowingTime}.`;
     if (isHi) return `${cropName} की उन्नत किस्में: ${vars}। बुवाई का सही समय: ${crop.sowingTime}।`;
+    if (isTe) return `${cropName} ఉత్తమ రకాలు: ${vars}. సరైన విత్తన సమయం: ${crop.sowingTime}.`;
+    if (isKn) return `${cropName} ಉತ್ತಮ ತಳಿಗಳು: ${vars}. ಬಿತ್ತನೆಗೆ ಸೂಕ್ತ ಸಮಯ: ${crop.sowingTime}.`;
+    if (isMl) return `${cropName} മികച്ച ഇനങ്ങൾ: ${vars}. വിതയ്ക്കാൻ അനുയോജ്യമായ സമയം: ${crop.sowingTime}.`;
     return `Top varieties for ${crop.name.en}: ${vars}. Recommended sowing season: ${crop.sowingTime}.`;
   }
 
-  // ── INTENT 6: IRRIGATION & WATER MANAGEMENT (நீர் / பாசனம் / WATER / IRRIGATION) ──
-  if (/நீர்|பாசனம்|தண்ணீர்|water|irrigation|sinchai/i.test(q)) {
+  // ── INTENT 6: IRRIGATION & WATER MANAGEMENT (நீர் / பாசனம் / WATER / IRRIGATION / నీరు / ನೀರು / വെള്ളം) ──
+  if (/நீர்|பாசனம்|தண்ணீர்|water|irrigation|sinchai|నీరు|నీటిపారుదల|ನೀರು|നനയ്ക്കൽ|വെള്ളം/i.test(q)) {
     if (isTa) return `${cropName} நீர் மேலாண்மை: ${crop.irrigation}`;
     if (isHi) return `${cropName} सिंचाई मार्गदर्शन: ${crop.irrigation}`;
+    if (isTe) return `${cropName} నీటి పారుదల మార్గదర్శకత్వం: ${crop.irrigation}`;
+    if (isKn) return `${cropName} ನೀರಾವರಿ ಮಾರ್ಗದರ್ಶನ: ${crop.irrigation}`;
+    if (isMl) return `${cropName} ജലസേചന നിർദ്ദേശങ്ങൾ: ${crop.irrigation}`;
     return `Irrigation guidelines for ${crop.name.en}: ${crop.irrigation}`;
   }
 
-  // ── INTENT 7: MARKET PRICES (விலை / சந்தை / PRICE / MANDI / RATE) ──
-  if (/விலை|சந்தை|மண்டி|விற்பனை|rate|price|market|mandi|cost|ரூபாய்|₹/i.test(q)) {
+  // ── INTENT 7: MARKET PRICES (விலை / சந்தை / PRICE / MANDI / RATE / ధర / ಬೆಲೆ / വില) ──
+  if (/விலை|சந்தை|மண்டி|விற்பனை|rate|price|market|mandi|cost|ரூபாய்|₹|ధర|మార్కెట్|ಬೆಲೆ|ಮಾರುಕಟ್ಟೆ|വില/i.test(q)) {
     if (isTa) return `இன்றைய அக்மார்க்நெட் நிலவரப்படி ${cropName} சந்தை மதிப்பு: ${crop.marketBenchmark}`;
     if (isHi) return `आज के मंडी भाव के अनुसार ${cropName}: ${crop.marketBenchmark}`;
+    if (isTe) return `నేటి మార్కెట్ ధర ప్రకారం ${cropName}: ${crop.marketBenchmark}`;
+    if (isKn) return `ಇಂದಿನ ಮಾರುಕಟ್ಟೆ ದರದಂತೆ ${cropName}: ${crop.marketBenchmark}`;
+    if (isMl) return `ഇന്നത്തെ വിപണി വില പ്രകാരം ${cropName}: ${crop.marketBenchmark}`;
     return `According to current Agmarknet benchmarks for ${crop.name.en}: ${crop.marketBenchmark}`;
   }
 
-  // ── INTENT 8: WEATHER / RAIN (வானிலை / மழை / WEATHER) ──
-  if (/வானிலை|மழை|வெயில்|weather|rain|barish/i.test(q)) {
+  // ── INTENT 8: WEATHER / RAIN (வானிலை / மழை / WEATHER / వాతావరణం / ಹವಾಮಾನ / കാലാവസ്ഥ) ──
+  if (/வானிலை|மழை|வெயில்|weather|rain|barish|వాతావరణం|వర్షం|ಹವಾಮಾನ|ಮಳೆ|കാലാവസ്ഥ|മഴ/i.test(q)) {
     const loc = context?.district || "உங்கள்";
     if (isTa) return `இன்று ${loc} பகுதியில் வானிலை சீராக உள்ளது. தீவிர கனமழை வாய்ப்பு இல்லை, வழக்கமான சாகுபடி பணிகளை மேற்கொள்ளலாம்.`;
     if (isHi) return `आज मौसम सामान्य बना हुआ है। कृषि कार्यों के लिए मौसम अनुकूल है।`;
+    if (isTe) return `నేడు వాతావరణం సాధారణంగా ఉంది. వ్యవసాయ పనులకు అనుకూలంగా ఉంటుంది.`;
+    if (isKn) return `ಇಂದು ಹವಾಮಾನವು ಸಾಮಾನ್ಯವಾಗಿರುತ್ತದೆ. ಕೃಷಿ ಚಟುವಟಿಕೆಗಳಿಗೆ ಸೂಕ್ತವಾಗಿದೆ.`;
+    if (isMl) return `ഇന്ന് കാലാവസ്ഥ സാധാരണ നിലയിലാണ്. കാർഷിക ജോലികൾക്ക് അനുയോജ്യമാണ്.`;
     return `Weather conditions are currently fair. Suitable for regular field operations and irrigation.`;
   }
 
@@ -323,6 +347,15 @@ export const getOfflineAgriculturalResponse = (
   }
   if (isHi) {
     return `नमस्ते! उझावन AI ऑफ़लाइन मोड तैयार है। अपनी ${cropName} फसल, खाद या रोग नियंत्रण के बारे में प्रश्न पूछें।`;
+  }
+  if (isTe) {
+    return `నమస్కారం! ఉழவன் AI ఆఫ్‌లైన్ మోడ్ సిద్ధంగా ఉంది. మీ ${cropName} సాగు, ఎరువులు లేదా మార్కెట్ ధర గురించి అడగండి.`;
+  }
+  if (isKn) {
+    return `ನಮಸ್ಕಾರ! ಉಳವನ್ AI ಆಫ್‌ಲೈನ್ ಮೋಡ್ ಸಿದ್ಧವಾಗಿದೆ. ನಿಮ್ಮ ${cropName} ಬೆಳೆ, ಗೊಬ್ಬರ ಅಥವಾ ಮಾರುಕಟ್ಟೆ ಬೆಲೆಯ ಬಗ್ಗೆ ಕೇಳಿ.`;
+  }
+  if (isMl) {
+    return `നമസ്കാരം! ഉഴവൻ AI ഓഫ്‌ലൈൻ മോഡ് തയ്യാറാണ്. നിങ്ങളുടെ ${cropName} കൃഷി, വളം അല്ലെങ്കിൽ വിപണി വിലയെക്കുറിച്ച് ചോദിക്കുക.`;
   }
   return `Uzhavan AI offline assistant active. Feel free to ask about ${crop.name.en} soil, fertilizers, pest control, or market prices.`;
 };

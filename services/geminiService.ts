@@ -180,23 +180,62 @@ export const sanitizeFarmerResponse = (text: string, language: string = 'english
     .trim();
 
   // Strip meta-thinking / chain-of-thought leaked by LLMs (e.g. Llama 3)
-  const isTa = (language || '').toLowerCase().startsWith('ta');
-  if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:)/i.test(result)) {
-    const tamilBlocks = result.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
-    if (tamilBlocks && tamilBlocks.length > 0) {
-      const realTamil = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
-      if (realTamil.length > 0) {
-        result = realTamil.slice(0, 2).join(' ').trim();
-      } else {
-        result = '';
-      }
-    } else {
-      result = '';
+  const langLower = (language || 'english').toLowerCase();
+  const isTa = langLower.startsWith('ta') || langLower === 'tamil';
+  const isHi = langLower.startsWith('hi') || langLower === 'hindi';
+  const isTe = langLower.startsWith('te') || langLower === 'telugu';
+  const isKn = langLower.startsWith('kn') || langLower === 'kannada';
+  const isMl = langLower.startsWith('ml') || langLower === 'malayalam';
+  const isEn = langLower.startsWith('en') || langLower === 'english';
+
+  if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:|so respond|let'?s craft)/i.test(result)) {
+    if (isTa) {
+      const blocks = result.match(/[\u0B80-\u0BFF][^\n"]*/g);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+        result = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+      } else { result = ''; }
+    } else if (isHi) {
+      const blocks = result.match(/[\u0900-\u097F][^\n"]*/g);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+        result = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+      } else { result = ''; }
+    } else if (isTe) {
+      const blocks = result.match(/[\u0C00-\u0C7F][^\n"]*/g);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+        result = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+      } else { result = ''; }
+    } else if (isKn) {
+      const blocks = result.match(/[\u0C80-\u0CFF][^\n"]*/g);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+        result = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+      } else { result = ''; }
+    } else if (isMl) {
+      const blocks = result.match(/[\u0D00-\u0D7F][^\n"]*/g);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(l => !l.includes('meaning') && !l.includes('answer:') && l.length > 5);
+        result = valid.length > 1 ? valid[valid.length - 1] : (valid[0] || '');
+      } else { result = ''; }
+    } else if (isEn) {
+      const sub = result.split(/so answer:|so respond:|let'?s craft:/i).pop() || result;
+      const lines = sub.split(/(?<=[.!?\n])\s+/).filter(l => !/(?:the user|we need to|instructions)/i.test(l));
+      result = lines.slice(0, 2).join(' ').trim();
     }
   }
 
-  // If result is empty or if Tamil was requested but result has no Tamil characters at all:
-  if (!result || (isTa && !/[\u0B80-\u0BFF]/.test(result))) {
+  // If result is empty or language mismatch occurred, fallback to offline intelligence
+  const needsFallback = !result ||
+    (isTa && !/[\u0B80-\u0BFF]/.test(result)) ||
+    (isHi && !/[\u0900-\u097F]/.test(result)) ||
+    (isTe && !/[\u0C00-\u0C7F]/.test(result)) ||
+    (isKn && !/[\u0C80-\u0CFF]/.test(result)) ||
+    (isMl && !/[\u0D00-\u0D7F]/.test(result)) ||
+    (isEn && !/[a-zA-Z]/.test(result));
+
+  if (needsFallback) {
     const offline = getOfflineAgriculturalResponse(text, getStoredFarmerProfile(), language);
     if (offline) return offline;
   }
@@ -228,6 +267,7 @@ const llmFallback = async (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          language,
           messages,
           model: 'meta/llama-3.3-70b-instruct',
           temperature,
@@ -285,21 +325,23 @@ const getLanguageInstruction = (language: string) => {
   switch (language.toLowerCase()) {
     case 'tamil':
     case 'ta':
-      return 'Respond ONLY in Tamil language (தமிழ்). Use clear, everyday Tamil spoken by farmers.';
+      return 'Respond ONLY in Tamil language (தமிழ்). Use clear, everyday spoken Tamil.';
     case 'hindi':
     case 'hi':
-      return 'Respond ONLY in Hindi language (हिंदी). Use clear, everyday Hindi spoken by farmers.';
+      return 'Respond ONLY in Hindi language (हिंदी). Use clear, everyday spoken Hindi.';
     case 'telugu':
     case 'te':
-      return 'Respond ONLY in Telugu language (తెలుగు).';
+      return 'Respond ONLY in Telugu language (తెలుగు). Use clear, everyday spoken Telugu.';
     case 'malayalam':
     case 'ml':
-      return 'Respond ONLY in Malayalam language (മലയാളം).';
+      return 'Respond ONLY in Malayalam language (മലയാളം). Use clear, everyday spoken Malayalam.';
     case 'kannada':
     case 'kn':
-      return 'Respond ONLY in Kannada language (ಕನ್ನಡ).';
+      return 'Respond ONLY in Kannada language (ಕನ್ನಡ). Use clear, everyday spoken Kannada.';
+    case 'english':
+    case 'en':
     default:
-      return 'Respond in clear, simple English for farmers.';
+      return 'Respond ONLY in clear, simple English for farmers.';
   }
 };
 
@@ -593,7 +635,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
   intentInstruction += `\nCRITICAL RESPONSE MANDATE:
 - Answer in EXACTLY 1 or 2 short sentences maximum.
 - Zero fluff, no bullet points, no lists, no markdown asterisks.
-- Answer strictly in the requested language (${language}).`;
+- You MUST answer STRICTLY and ONLY in the requested language: ${language}. All output text must be in ${language}. Never mix languages.`;
 
   const parts: any[] = [{ text: message }];
   if (imageBase64) {
