@@ -3,7 +3,18 @@
  * Connects frontend to FastAPI backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+export const getApiBaseUrl = (): string => {
+    let url = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+        const host = window.location.hostname;
+        if (host !== 'localhost' && host !== '127.0.0.1' && (url.includes('localhost') || url.includes('127.0.0.1'))) {
+            return '';
+        }
+    }
+    return url;
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 // Token management
 let authToken: string | null = localStorage.getItem('authToken');

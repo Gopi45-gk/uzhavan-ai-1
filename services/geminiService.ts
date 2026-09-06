@@ -2,6 +2,7 @@ import { GoogleGenAI, GenerateContentResponse, Type, Modality } from "@google/ge
 import { buildFarmerContextPrompt, buildEnrichedContextPrompt, storeRecentDisease, getStoredFarmerProfile, fetchLiveWeatherForContext, fetchLiveMarketForContext, fetchLiveNewsForContext } from "./farmerContextService";
 import { getStrictSystemPrompt } from "./promptConfig";
 import { analyzePlantDiseaseOffline, getOfflineAgriculturalResponse } from "./offlineIntelligenceService";
+import { getApiBaseUrl } from "./api";
 
 // Dual-key system: try primary, fallback to voice key
 const GEMINI_KEYS = [
@@ -26,7 +27,7 @@ const NVIDIA_BASE_URL = import.meta.env.VITE_NVIDIA_BASE_URL || 'https://integra
 // Groq fallback for when all other keys are dead
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 // ================= SYSTEM PROMPTS (RAG / CHAT & CALL) =================
 export const SYSTEM_PROMPT_CHAT = `You are உழவன் AI (Uzhavan AI), an expert agricultural assistant built to provide precise, direct answers to farmers.

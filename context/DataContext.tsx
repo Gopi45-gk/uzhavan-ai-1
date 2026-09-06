@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getApiBaseUrl } from '../services/api';
 
 // Interfaces matching backend response
 export interface WeatherData {
@@ -186,7 +187,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, userCoords
             const lon = userCoords?.lon || 80.2707;
             const langCode = LANGUAGE_CODE_MAP[language.toLowerCase()] || 'en';
             const state = userState || "Tamil Nadu";
-            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const apiUrl = getApiBaseUrl();
 
             const response = await fetch(`${apiUrl}/api/v1/dashboard/?lat=${lat}&lon=${lon}&state=${encodeURIComponent(state)}&lang=${langCode}`, {
                 method: 'GET',

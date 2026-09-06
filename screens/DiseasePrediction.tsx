@@ -7,6 +7,7 @@ import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile } from '../services/farmerContextService';
 import { db, auth } from '../services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { getApiBaseUrl } from '../services/api';
 
 // ==================== TYPES ====================
 interface Disease {
@@ -562,7 +563,7 @@ Return ONLY valid JSON array format like this (no other text, no markdown):
 
       // Layer 2: NVIDIA NIM via Backend Proxy (server-side, no CORS)
       if (!responseText.trim()) {
-        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const apiUrl = getApiBaseUrl();
         try {
           console.log('[Disease] Trying NVIDIA NIM via Backend Proxy...');
           const nimRes = await fetch(`${apiUrl}/api/nvidia/chat`, {

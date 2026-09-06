@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Search, MapPin, CheckCircle2, Loader2, Sprout, Sparkles, Sun, CloudRain } from 'lucide-react';
 import { recommendCrop } from '../services/geminiService';
 import CropRecommendationMap, { YieldResult } from './CropRecommendationMap';
+import { getApiBaseUrl } from '../services/api';
 
 interface Props {
   onBack: () => void;
@@ -46,7 +47,7 @@ const CropRecommendation: React.FC<Props> = ({ onBack, language, t }) => {
     setResult(null);
     setYieldData(null);
 
-    const API_BASE = import.meta.env.VITE_API_URL || '';
+    const API_BASE = getApiBaseUrl();
 
     try {
       const dataPayload = {

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Phone, Play, Pause, FileText, Clock, Globe, Calendar, Loader2, Trash2 } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
+import { getApiBaseUrl } from '../services/api';
 
 interface Props {
     onBack: () => void;
     t: (key: string) => string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 interface CallRecord {
     id: number;

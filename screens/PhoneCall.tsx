@@ -6,6 +6,7 @@ import { firebaseAuthService } from '../services/firebaseAuth';
 import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile, getRecentDisease } from '../services/farmerContextService';
 import { speakText, stopSpeech } from '../services/ttsService';
+import { getApiBaseUrl } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MULTI-SOURCE INTELLIGENCE & API ORCHESTRATION ARCHITECTURE
@@ -15,7 +16,7 @@ import { speakText, stopSpeech } from '../services/ttsService';
 // Layer 4: Multi-Model Intelligence Engine (NVIDIA NIM ➔ Groq ➔ Gemini ➔ Local RAG Fallback)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = getApiBaseUrl();
 const NVIDIA_API_KEY = import.meta.env.VITE_NVIDIA_API_KEY || '';
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GEMINI_KEYS = [

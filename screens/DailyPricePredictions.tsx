@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, MapPin, Calendar, Tag } from 'lucide-react';
+import { getApiBaseUrl } from '../services/api';
 
 interface Props {
     onBack: () => void;
@@ -300,7 +301,7 @@ const DailyPricePredictions: React.FC<Props> = ({ onBack, language, userLocation
             };
             const langCode = langMap[language.toLowerCase()] || 'en';
             const state = userLocation || 'Tamil Nadu';
-            const apiUrl = import.meta.env.VITE_API_URL || '';
+            const apiUrl = getApiBaseUrl();
 
             const response = await fetch(
                 `${apiUrl}/api/market/prices?state=${encodeURIComponent(state)}&lang=${langCode}&category=all`,

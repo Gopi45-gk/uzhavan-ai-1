@@ -11,7 +11,9 @@
  * API: /api/news
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { getApiBaseUrl } from './api';
+
+const API_BASE_URL = getApiBaseUrl();
 
 // ============= CACHE CONFIG =============
 const CACHE_KEY = 'uzhavan_agri_news_cache';

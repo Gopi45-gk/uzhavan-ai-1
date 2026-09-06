@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { getApiBaseUrl } from '../services/api';
 import {
     ArrowLeft,
     Volume2,
@@ -68,7 +69,7 @@ interface Props {
 
 // ==================== CONSTANTS ====================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 const STATES = [
     { id: 'all_india', name: 'All India', name_tamil: 'அனைத்து இந்தியா' },

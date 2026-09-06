@@ -30,10 +30,12 @@ import {
     UserProfile,
 } from './firestoreProfile';
 
+import { getApiBaseUrl } from './api';
+
 export type { UserProfile };
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = getApiBaseUrl();
 
 // ============= CACHE CONFIG =============
 const CACHE_KEY = 'uzhavan_user_profile';

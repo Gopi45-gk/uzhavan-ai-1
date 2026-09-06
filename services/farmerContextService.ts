@@ -4,7 +4,9 @@
  * and builds a dynamic Farmer Context prompt string for Gemini & LLM RAG pipelines.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { getApiBaseUrl } from './api';
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface FarmerProfileData {
   name?: string;
