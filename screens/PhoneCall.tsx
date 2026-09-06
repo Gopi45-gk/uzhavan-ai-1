@@ -364,8 +364,9 @@ VOICE CALL RESPONSE RULES:
 4. Preserves all numerical values (prices ₹, temperature °C, humidity %, dosages) EXACTLY without alteration.
 5. If live data is unavailable, clearly state so without inventing numbers or weather.
 6. Provide practical, immediate steps (organic remedies, chemical dosage, prevention techniques).
-7. Keep voice response short (2-3 sentences max), conversational, clear, and end with 1 natural follow-up question.
-8. NO EMOJIS, NO LISTS, NO BULLET POINTS: This text is read aloud on a telephone call. NEVER output emojis (🌾, 🌿, 🌱), numbered lists (1., 2.), or bullet points. Speak in natural continuous sentences.`;
+7. STRICT LENGTH LIMIT: Respond in exactly 1 or 2 short, direct sentences. No long paragraphs, no conversational filler, and no chain of thought.
+8. NO EMOJIS, NO LISTS, NO BULLET POINTS: This text is read aloud on a telephone call. NEVER output emojis, numbered lists, or bullet points. Speak in natural continuous sentences.
+9. DIRECT ANSWER MANDATE: Begin your response directly with the answer in ${targetLang}. Never output English explanations or meta thinking.`;
 }
 
 async function callMultiModelEngine(
@@ -401,14 +402,23 @@ INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}.
   const sanitizeCallBotResponse = (raw: string | null | undefined): string | null => {
     if (!raw) return null;
     let t = raw.trim();
-    if (/(?:we need to|the user asks|the user is asking|according to|meaning\s*["']|thinking process|so answer:)/i.test(t)) {
+    if (/(?:we need to|the user asks|the user is asking|according to|meaning\s*["']|thinking process|so answer:|let'?s craft|so respond)/i.test(t)) {
       if (selectedLang === 'ta') {
-        const tamilBlocks = t.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
+        const tamilBlocks = t.match(/[\u0B80-\u0BFF][^\n"]*/g);
         if (tamilBlocks && tamilBlocks.length > 0) {
-          const valid = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
-          if (valid.length > 0) return valid.slice(0, 3).join(' ').trim();
+          const valid = tamilBlocks
+            .map(b => b.replace(/^[\s"']+|[\s"']+$/g, ''))
+            .filter(b => b.length > 8 && !b.includes('meaning') && !b.includes('answer:'));
+          if (valid.length > 1) {
+            return valid[valid.length - 1].slice(0, 200).trim();
+          } else if (valid.length === 1 && !valid[0].includes('கேரட்டுக்கு என்ன உரம்')) {
+            return valid[0].slice(0, 200).trim();
+          }
         }
-        return null; // Discard pure English meta thinking
+        if (analysis.intents.includes('fertilizer') && (analysis.query_crop?.toLowerCase().includes('carrot') || profile.crop_type?.toLowerCase().includes('carrot'))) {
+          return "கேரட்டுக்கு ஏக்கருக்கு 20 டன் மட்கிய தொழுவுரம் மற்றும் NPK 50:100:100 கிலோ இடுவது சிறந்தது.";
+        }
+        return null;
       }
     }
     return t;

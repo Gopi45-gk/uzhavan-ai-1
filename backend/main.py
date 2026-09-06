@@ -1009,13 +1009,16 @@ async def nvidia_chat_proxy(request: Request):
                     rc = msg.get("reasoning_content") or msg.get("reasoning") or ""
                     content = rc
 
-                if any(w in content for w in ["The user", "user is asking", "thinking process", "We need to", "Okay,"]):
-                    sub = content.split("So answer:")[-1] if "So answer:" in content else (content.split("In Tamil:")[-1] if "In Tamil:" in content else content)
-                    m = re.findall(r"\"([^\"]*[\u0B80-\u0BFF]{3,}[^\"]*)\"", sub)
-                    if m:
-                        content = m[-1].strip()
+                if any(w in content for w in ["The user", "user is asking", "user asks", "thinking process", "We need to", "Okay,", "Let's craft", "So respond", "So answer:"]):
+                    tamil_blocks = [b.strip(' "\'') for b in re.findall(r'[\u0B80-\u0BFF][^\n"]*', content) if len(re.findall(r'[\u0B80-\u0BFF]', b)) > 5]
+                    if len(tamil_blocks) > 1:
+                        # The last block is the generated answer (prior blocks are usually echoed question)
+                        content = tamil_blocks[-1]
+                    elif len(tamil_blocks) == 1 and not any(w in tamil_blocks[0] for w in ["The user", "meaning", "asking", "translate"]):
+                        content = tamil_blocks[0]
                     else:
-                        lines = [l.strip() for l in content.split("\n") if re.search(r"[\u0B80-\u0BFF]", l) and not any(w in l for w in ["The user", "translate", "meaning", "asking"])]
+                        sub = content.split("So answer:")[-1] if "So answer:" in content else (content.split("In Tamil:")[-1] if "In Tamil:" in content else content)
+                        lines = [l.strip() for l in sub.split("\n") if re.search(r"[\u0B80-\u0BFF]", l)]
                         if lines:
                             content = lines[-1]
                 msg["content"] = content
