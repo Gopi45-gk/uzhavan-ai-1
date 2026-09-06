@@ -5,7 +5,5 @@ dist
 backend/venv
 backend/__pycache__
 *.pyc
-.env
-.env.local
 .DS_Store
 deploy/*.pem
