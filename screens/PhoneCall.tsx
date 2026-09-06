@@ -391,12 +391,28 @@ ${history || 'New call session.'}
 FARMER QUESTION:
 "${message}"
 
-Provide a direct, conversational voice response in ${selectedLang}:`;
+INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}. Do NOT write English thinking, do NOT write "We need to", output ONLY the final spoken reply:`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt }
   ];
+
+  const sanitizeCallBotResponse = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    let t = raw.trim();
+    if (/(?:we need to|the user asks|the user is asking|according to|meaning\s*["']|thinking process|so answer:)/i.test(t)) {
+      if (selectedLang === 'ta') {
+        const tamilBlocks = t.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
+        if (tamilBlocks && tamilBlocks.length > 0) {
+          const valid = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
+          if (valid.length > 0) return valid.slice(0, 3).join(' ').trim();
+        }
+        return null; // Discard pure English meta thinking
+      }
+    }
+    return t;
+  };
 
   // 1. Primary: NVIDIA NIM Proxy
   try {
@@ -405,14 +421,15 @@ Provide a direct, conversational voice response in ${selectedLang}:`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'meta/llama-3.3-70b-instruct',
-        temperature: 0.4,
+        temperature: 0.3,
         max_tokens: 300,
         messages,
       }),
     });
     if (res.ok) {
       const data = await res.json();
-      const text = data.choices?.[0]?.message?.content?.trim();
+      const rawText = data.choices?.[0]?.message?.content?.trim();
+      const text = sanitizeCallBotResponse(rawText);
       if (text && !text.includes('fallback') && text !== '[]') {
         console.log('[CallBot Engine] NVIDIA NIM Proxy OK');
         return text;
@@ -428,14 +445,15 @@ Provide a direct, conversational voice response in ${selectedLang}:`;
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_API_KEY}` },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          temperature: 0.4,
+          temperature: 0.3,
           max_tokens: 300,
           messages,
         }),
       });
       if (res.ok) {
         const data = await res.json();
-        const text = data.choices?.[0]?.message?.content?.trim();
+        const rawText = data.choices?.[0]?.message?.content?.trim();
+        const text = sanitizeCallBotResponse(rawText);
         if (text) {
           console.log('[CallBot Engine] Groq Direct OK');
           return text;
@@ -456,13 +474,14 @@ Provide a direct, conversational voice response in ${selectedLang}:`;
             body: JSON.stringify({
               system_instruction: { parts: [{ text: systemPrompt }] },
               contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-              generationConfig: { temperature: 0.4, maxOutputTokens: 300 },
+              generationConfig: { temperature: 0.3, maxOutputTokens: 300 },
             }),
           }
         );
         if (res.ok) {
           const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          const text = sanitizeCallBotResponse(rawText);
           if (text) {
             console.log('[CallBot Engine] Gemini OK');
             return text;
@@ -476,6 +495,15 @@ Provide a direct, conversational voice response in ${selectedLang}:`;
   console.log('[CallBot Engine] Local RAG Generator Fallback');
   const crop = analysis.query_crop || profile.crop_type || 'Paddy';
   const loc = analysis.query_location || profile.district || 'Thanjavur';
+
+  if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer/i.test(message)) {
+    const responses: Record<string, string> = {
+      ta: `${crop} பயிருக்கு ஹெக்டேருக்கு 40 கிலோ தழைச்சத்து, 80 கிலோ மணிச்சத்து மற்றும் 60 கிலோ சாம்பல் சத்து உரமிட வேண்டும். நிலம் தயாரிக்கும் போது ஏக்கருக்கு 10 டன் மக்கிய தொழு உரம் இடுவது மிக நல்லது. உங்கள் நிலத்தின் மண் வகை என்ன?`,
+      en: `For ${crop}, apply 40:80:60 kg NPK per hectare along with 10 tonnes of well-decomposed farmyard manure. What type of soil do you have?`,
+      hi: `${crop} के लिए 40:80:60 किग्रा एनपीके और 10 टन गोबर की खाद का उपयोग करें। आपकी मिट्टी किस प्रकार की है?`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
 
   if (analysis.requires_disease_rag) {
     const responses: Record<string, string> = {
