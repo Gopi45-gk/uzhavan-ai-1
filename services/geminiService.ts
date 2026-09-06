@@ -179,6 +179,28 @@ export const sanitizeFarmerResponse = (text: string, language: string = 'english
     .replace(/[*#_`]/g, '')
     .trim();
 
+  // Strip meta-thinking / chain-of-thought leaked by LLMs (e.g. Llama 3)
+  const isTa = (language || '').toLowerCase().startsWith('ta');
+  if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:)/i.test(result)) {
+    const tamilBlocks = result.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
+    if (tamilBlocks && tamilBlocks.length > 0) {
+      const realTamil = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
+      if (realTamil.length > 0) {
+        result = realTamil.slice(0, 2).join(' ').trim();
+      } else {
+        result = '';
+      }
+    } else {
+      result = '';
+    }
+  }
+
+  // If result is empty or if Tamil was requested but result has no Tamil characters at all:
+  if (!result || (isTa && !/[\u0B80-\u0BFF]/.test(result))) {
+    const offline = getOfflineAgriculturalResponse(text, getStoredFarmerProfile(), language);
+    if (offline) return offline;
+  }
+
   // Enforce 1-2 sentences maximum
   const sentences = result.split(/(?<=[.!?\n])\s+/).map(s => s.trim()).filter(s => s.length > 0 && !s.startsWith('-') && !s.startsWith('•'));
   if (sentences.length > 2) {
@@ -583,16 +605,15 @@ export const getFarmerChatResponse = async (message: string, language: string = 
     });
   }
 
-  const strictPrompt = getStrictSystemPrompt(language);
-  const systemInstructionCombined = `${strictPrompt}\n\n${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${intentInstruction}\n\n${languageInstruction}`;
+  const systemInstructionCombined = `${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${intentInstruction}\n\n${languageInstruction}`;
 
   const config = {
     model: 'gemini-2.0-flash',
     contents: { parts },
     config: {
       systemInstruction: systemInstructionCombined,
-      maxOutputTokens: 150,
-      temperature: 0.1,
+      maxOutputTokens: 300,
+      temperature: 0.2,
     }
   };
 
@@ -626,7 +647,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
       },
       { role: 'user', content: message.replace(/[*#_`]/g, '').trim() }
     ],
-    0.1, 150, language
+    0.2, 300, language
   );
   if (fallbackText) return sanitizeFarmerResponse(fallbackText, language);
 

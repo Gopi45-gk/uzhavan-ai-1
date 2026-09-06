@@ -287,8 +287,8 @@ export const getOfflineAgriculturalResponse = (
     return `For ${crop.name.en} disease management: Organic control: ${org}. Chemical spray: ${chem}.`;
   }
 
-  // ── INTENT 5: SOWING SEASON & SEED VARIETIES (விதை / ரகம் / பருவம் / SOW / VARIETY) ──
-  if (/விதை|ரகம்|பருவம்|எப்போது|நடவு|சாகுபடி|sow|seed|variet|season/i.test(q)) {
+  // ── INTENT 5: SOWING SEASON & SEED VARIETIES (விதை / ரகம் / பருவம் / சாகுபடி / வளர்க்க / SOW / VARIETY) ──
+  if (/விதை|ரகம்|பருவம்|எப்போது|நடவு|சாகுபடி|வளர்க்க|வளர்ப்பு|பயிரிட|sow|seed|variet|season|grow|plant|cultivat/i.test(q)) {
     const vars = crop.varieties.slice(0, 3).join(", ");
     if (isTa) return `${cropName} சிறந்த ரகங்கள்: ${vars}. உகந்த விதைப்பு பருவம்: ${crop.sowingTime}.`;
     if (isHi) return `${cropName} की उन्नत किस्में: ${vars}। बुवाई का सही समय: ${crop.sowingTime}।`;

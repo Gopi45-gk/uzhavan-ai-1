@@ -60,7 +60,10 @@ export function sanitizeTextForSpeech(text: string): string {
 
   // Remove Technical keywords and IDs
   cleaned = cleaned.replace(/\b[0-9a-fA-F]{12,}\b/g, '');
-  cleaned = cleaned.replace(/api_key|uid|token|error|stack|trace|http|www/gi, '');
+  // Remove all emojis, pictographs, and symbols so TTS never speaks emoji names aloud
+  cleaned = cleaned.replace(/[\p{Extended_Pictographic}\uFE0F\u200D\u20E3]/gu, '');
+  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '');
+  cleaned = cleaned.replace(/[🌾🌱🚜🌿🍅🥔🌽🥕🧅🍆🌶️🍌🛡️💊📋🔬🔍📌⚠️⭐💡✨🎯]/g, '');
 
   // Clean extra whitespace
   cleaned = cleaned.replace(/\s+/g, ' ').trim();

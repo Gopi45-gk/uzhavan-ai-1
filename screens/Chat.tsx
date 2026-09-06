@@ -7,6 +7,7 @@ import { getGlobalWebLlmEngine, getLanguageConfig } from './PhoneCall';
 import { getLocalizedGreeting, getStrictSystemPrompt, resolveIntelligentQueryRoute } from '../services/promptConfig';
 import { getStoredFarmerProfile } from '../services/farmerContextService';
 import { getOfflineAgriculturalResponse, analyzePlantDiseaseOffline } from '../services/offlineIntelligenceService';
+import { getApiBaseUrl } from '../services/api';
 
 export { resolveIntelligentQueryRoute };
 
@@ -180,7 +181,8 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-    fetch(`/api/tts/speak?text=${encodeURIComponent(cleanText.substring(0, 800))}&lang=${langCode}`, {
+    const apiUrl = getApiBaseUrl();
+    fetch(`${apiUrl}/api/tts/speak?text=${encodeURIComponent(cleanText.substring(0, 800))}&lang=${langCode}`, {
       signal: controller.signal,
     })
       .then(async (res) => {
@@ -197,7 +199,8 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
               ttsAudioRef.current = null;
             }
 
-            const objectUrl = URL.createObjectURL(blob);
+            const audioBlob = new Blob([blob], { type: 'audio/wav' });
+            const objectUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(objectUrl);
             audio.volume = 1.0;
             ttsAudioRef.current = audio;
@@ -281,29 +284,46 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         }
       }
 
+      const langNames: Record<string, string> = {
+        tamil: 'Tamil (தமிழ்)', ta: 'Tamil (தமிழ்)',
+        english: 'English', en: 'English',
+        hindi: 'Hindi (हिंदी)', hi: 'Hindi (हिंदी)',
+        telugu: 'Telugu (తెలుగు)', te: 'Telugu (తెలుగు)',
+        kannada: 'Kannada (ಕನ್ನಡ)', kn: 'Kannada (ಕನ್ನಡ)',
+        malayalam: 'Malayalam (മലയാളം)', ml: 'Malayalam (മലയാളം)',
+      };
+      const targetLang = langNames[activeLang.toLowerCase()] || 'Tamil (தமிழ்)';
+
       const farmerContext = [
-        getStrictSystemPrompt(activeLang),
-        '=== USER LOCATION & REGISTRATION DATA ===',
-        `- Farmer Name: ${profileDetails.farmerName}`,
-        `- User Location / District: ${profileDetails.district}`,
-        `- Registered Crop: ${profileDetails.registeredCrop}`,
-        `- Soil Type: ${profileDetails.soilType}`,
-        `CURRENT_QUESTION_FOCUS: Ignore prior conversation context. Answer ONLY this farmer query directly: "${cleanedQuery}"`
-      ].filter(Boolean).join('\n');
+        `You are UZHAVAN AI (உழவன் AI), an expert agricultural assistant helping an Indian farmer.`,
+        `FARMER CONTEXT:`,
+        `- Name: ${profileDetails.farmerName}`,
+        `- Location: ${profileDetails.district}`,
+        `- Crop: ${profileDetails.registeredCrop}`,
+        `- Soil: ${profileDetails.soilType}`,
+        `MANDATORY LANGUAGE:`,
+        `You MUST respond STRICTLY and ONLY in ${targetLang}. Never reply in English when ${targetLang} is requested.`,
+        `RULES:`,
+        `1. Provide direct, practical, and accurate farming advice for the farmer's question.`,
+        `2. NEVER output meta-commentary, thinking process, translation notes, or phrases like "We need to answer", "The user asks", "According to instructions".`,
+        `3. NEVER mention AI, model, API, backend, system, Groq, Gemini, or NVIDIA.`,
+        `4. Give clear, actionable advice (varieties, soil preparation, planting, irrigation, fertilizer dosage, or pest management).`,
+        `5. Answer concisely in 2-3 clear, helpful sentences.`
+      ].join('\n');
 
       // 1. If singleton WebLLM model is already active and no image was uploaded, query WebLLM directly with timeout race
       const webLlm = getGlobalWebLlmEngine();
       if (!responseText && webLlm && !currentImage && cleanedQuery) {
         try {
           try { await webLlm.resetChat(true); } catch {}
-          console.log('[Chatbot WebLLM] Generating answer with strict boundaries (temp: 0.1, max_tokens: 150)...');
+          console.log('[Chatbot WebLLM] Generating answer with strict boundaries (temp: 0.2, max_tokens: 300)...');
           const webLlmPromise = webLlm.chat.completions.create({
             messages: [
               { role: 'system', content: farmerContext },
               { role: 'user', content: cleanedQuery }
             ],
-            temperature: 0.1,
-            max_tokens: 150,
+            temperature: 0.2,
+            max_tokens: 300,
           });
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('WebLLM timeout')), 4500)
@@ -321,11 +341,12 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
       // 2. Query backend chat API (/api/chat) with strict isolation
       if (!responseText && !currentImage && cleanedQuery) {
         try {
-          console.log('[Chatbot Backend LLM] Calling /api/chat with strict boundaries (temp: 0.1, max_tokens: 150)...');
+          const apiUrl = getApiBaseUrl();
+          console.log('[Chatbot Backend LLM] Calling /api/chat with direct agricultural prompt...');
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
           const langCfg = getLanguageConfig(activeLang);
-          const res = await fetch('/api/chat', {
+          const res = await fetch(`${apiUrl}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -334,8 +355,8 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
                 { role: 'system', content: farmerContext },
                 { role: 'user', content: cleanedQuery }
               ],
-              temperature: 0.1,
-              max_tokens: 150,
+              temperature: 0.3,
+              max_tokens: 300,
             }),
             signal: controller.signal,
           });
@@ -343,7 +364,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
           if (res.ok) {
             const data = await res.json();
             const candidate = data.choices?.[0]?.message?.content?.trim();
-            if (candidate && !candidate.includes('fallback') && candidate.length > 2) {
+            if (candidate && !candidate.includes('fallback') && candidate.length > 2 && !/(?:we need to answer|the user asks|according to (?:the )?instructions)/i.test(candidate)) {
               responseText = candidate.replace(/[*#_`]/g, '').trim();
             }
           }
@@ -375,12 +396,33 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         }
       }
 
-      // 5. Strict 1-2 sentence boundary enforcement and markdown cleanup
+      // 5. Strict boundary enforcement, meta-thinking stripping, and markdown cleanup
       if (responseText) {
+        // Strip meta-thinking / chain-of-thought leaked by LLMs (e.g. Llama 3)
+        const isTa = activeLang.toLowerCase().startsWith('ta');
+        if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|in tamil:)/i.test(responseText)) {
+          const tamilBlocks = responseText.match(/[\u0B80-\u0BFF][^\n]*[.!?]?/g);
+          if (tamilBlocks && tamilBlocks.length > 0) {
+            const realTamil = tamilBlocks.filter(l => !l.includes('meaning') && !l.includes('answer:') && l.trim().length > 5);
+            if (realTamil.length > 0) {
+              responseText = realTamil.slice(0, 2).join(' ').trim();
+            } else {
+              responseText = '';
+            }
+          } else {
+            responseText = '';
+          }
+        }
+
+        // If responseText is empty or if Tamil was requested but no Tamil characters exist:
+        if (!responseText || (isTa && !/[\u0B80-\u0BFF]/.test(responseText))) {
+          responseText = getOfflineAgriculturalResponse(cleanedQuery, profileDetails, activeLang);
+        }
+
         responseText = responseText.replace(/[*#_`]/g, '').trim();
         const sentences = responseText.split(/(?<=[.!?\n])\s+/).filter(Boolean);
-        if (sentences.length > 2) {
-          responseText = sentences.slice(0, 2).join(' ').trim();
+        if (sentences.length > 3) {
+          responseText = sentences.slice(0, 3).join(' ').trim();
         }
       }
 
