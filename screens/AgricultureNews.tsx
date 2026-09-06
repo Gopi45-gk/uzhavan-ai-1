@@ -41,6 +41,8 @@ interface NewsCard {
     date: string;
     voice_available: boolean;
     image_url?: string;
+    video_url?: string;  // optional direct YouTube URL field
+    link_url?: string;   // optional article/video link field
 }
 
 interface NewsCardsResponse {
@@ -94,6 +96,45 @@ const TAG_CONFIG: Record<string, { color: string; bg: string; icon: React.Elemen
     subsidy: { color: '#7b1fa2', bg: '#f3e5f5', icon: Gift },
     alert: { color: '#d32f2f', bg: '#ffebee', icon: AlertCircle },
 };
+
+// ==================== YOUTUBE EMBED HELPERS ====================
+
+/**
+ * Extracts a YouTube video ID from any of these URL formats:
+ *   https://www.youtube.com/watch?v=VIDEO_ID
+ *   https://www.youtube.com/live/VIDEO_ID
+ *   https://youtu.be/VIDEO_ID
+ *   https://m.youtube.com/watch?v=VIDEO_ID
+ * Returns null if no YouTube URL is found.
+ */
+const extractYouTubeId = (url: string): string | null => {
+    if (!url) return null;
+    // Standard watch URL
+    const watchMatch = url.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    if (watchMatch) return watchMatch[1];
+    // Live / short path URL: youtube.com/live/ID or youtu.be/ID
+    const pathMatch = url.match(/(?:youtube\.com\/(?:live|embed|shorts)|youtu\.be)\/([A-Za-z0-9_-]{11})/);
+    if (pathMatch) return pathMatch[1];
+    return null;
+};
+
+/**
+ * Searches a block of text for any YouTube URL and returns the first video ID found.
+ * Returns null if no YouTube URL exists in the text.
+ */
+const extractYouTubeIdFromText = (text: string): string | null => {
+    if (!text) return null;
+    const urlMatch = text.match(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/[^\s]+/);
+    if (urlMatch) return extractYouTubeId(urlMatch[0]);
+    return null;
+};
+
+/**
+ * Strips raw YouTube URLs from a summary string so they aren't displayed as plain text
+ * after the video is embedded.
+ */
+const stripYouTubeUrls = (text: string): string =>
+    text.replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/[^\s]*/g, '').replace(/\s{2,}/g, ' ').trim();
 
 // ==================== VOICE SERVICE ====================
 
@@ -457,6 +498,18 @@ const AgricultureNews: React.FC<Props> = ({
                     const tagConfig = TAG_CONFIG[tagKey];
                     const TagIcon = tagConfig.icon;
 
+                    // ── YouTube Embed Detection ──
+                    // Priority: card.video_url > card.link_url > URL found inside summary
+                    const youtubeId =
+                        extractYouTubeId(card.video_url || '') ||
+                        extractYouTubeId(card.link_url || '') ||
+                        extractYouTubeIdFromText(card.summary || '');
+
+                    // If a video is embedded, strip raw YouTube URLs from the displayed summary
+                    const displaySummary = youtubeId
+                        ? stripYouTubeUrls(card.summary)
+                        : card.summary;
+
                     return (
                         <div
                             key={index}
@@ -507,10 +560,45 @@ const AgricultureNews: React.FC<Props> = ({
                                 <h3 className="text-base font-bold text-gray-900 leading-tight mb-2">
                                     {card.title}
                                 </h3>
-                                <p className="text-sm text-gray-600 leading-relaxed">
-                                    {card.summary}
-                                </p>
+                                {displaySummary && (
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                        {displaySummary}
+                                    </p>
+                                )}
                             </div>
+
+                            {/* YouTube Embed — shown only when a video ID is detected */}
+                            {youtubeId && (
+                                <div className="px-4 pb-3">
+                                    <div
+                                        style={{
+                                            position: 'relative',
+                                            paddingBottom: '56.25%', /* 16:9 aspect ratio */
+                                            height: 0,
+                                            overflow: 'hidden',
+                                            borderRadius: '12px',
+                                        }}
+                                    >
+                                        <iframe
+                                            src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+                                            title={card.title}
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowFullScreen
+                                            loading="lazy"
+                                            referrerPolicy="strict-origin-when-cross-origin"
+                                            style={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                width: '100%',
+                                                height: '100%',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Card Footer */}
                             <div className="px-4 pb-4 flex items-center justify-between">

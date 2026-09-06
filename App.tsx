@@ -26,8 +26,11 @@ const LANGUAGE_STORAGE_KEY = 'uzhavan_app_language';
 const saveLanguageToStorage = (language: string) => {
   try {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-    // Also save to sessionStorage as backup
     sessionStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    localStorage.setItem('uzhavan_selected_language', language);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('uzhavan_language_changed', { detail: language }));
+    }
   } catch (error) {
     console.warn('Failed to save language to storage:', error);
   }
@@ -35,9 +38,9 @@ const saveLanguageToStorage = (language: string) => {
 
 const getLanguageFromStorage = (): string => {
   try {
-    // Try localStorage first, then sessionStorage, then default
     return localStorage.getItem(LANGUAGE_STORAGE_KEY) ||
       sessionStorage.getItem(LANGUAGE_STORAGE_KEY) ||
+      localStorage.getItem('uzhavan_selected_language') ||
       'english';
   } catch (error) {
     console.warn('Failed to get language from storage:', error);

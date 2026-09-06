@@ -994,57 +994,83 @@ async def nvidia_chat_proxy(request: Request):
     except Exception:
         data = {}
 
-    req_model = data.get("model", "meta/llama-3.3-70b-instruct")
+    req_model = data.get("model", "meta/llama-3.2-11b-vision-instruct")
     req_messages = data.get("messages", [])
-    req_temp = data.get("temperature", 0.2)
-    req_tokens = data.get("max_tokens", 1024)
+    req_temp = data.get("temperature", 0.1)
+    req_tokens = data.get("max_tokens", 150)
+
+    def clean_llm_json(res_json):
+        try:
+            choices = res_json.get("choices", [])
+            if choices and "message" in choices[0]:
+                msg = choices[0]["message"]
+                content = msg.get("content", "") or ""
+                if not content:
+                    rc = msg.get("reasoning_content") or msg.get("reasoning") or ""
+                    content = rc
+
+                if any(w in content for w in ["The user", "user is asking", "thinking process", "We need to", "Okay,"]):
+                    sub = content.split("So answer:")[-1] if "So answer:" in content else (content.split("In Tamil:")[-1] if "In Tamil:" in content else content)
+                    m = re.findall(r"\"([^\"]*[\u0B80-\u0BFF]{3,}[^\"]*)\"", sub)
+                    if m:
+                        content = m[-1].strip()
+                    else:
+                        lines = [l.strip() for l in content.split("\n") if re.search(r"[\u0B80-\u0BFF]", l) and not any(w in l for w in ["The user", "translate", "meaning", "asking"])]
+                        if lines:
+                            content = lines[-1]
+                msg["content"] = content
+        except Exception:
+            pass
+        return res_json
 
     # Inject farmer context if provided by frontend (crop-aware, location-aware personalization)
     farmer_ctx = data.get("farmer_context", "")
     if farmer_ctx and isinstance(farmer_ctx, str) and len(farmer_ctx) > 10:
         req_messages = [{"role": "system", "content": farmer_ctx}] + req_messages
 
-    # 1. Try Primary NVIDIA NIM (Llama 3.3 70B)
+    # 1. Try Primary NVIDIA NIM (Llama 3.2 11B Vision Instruct - direct fast response)
     try:
-        if NVIDIA_API_KEY and not NVIDIA_API_KEY.startswith("nvapi-placeholder"):
+        primary_key = NVIDIA_API_KEY or NEMOTRON_API_KEY
+        if primary_key and not primary_key.startswith("nvapi-placeholder"):
             res = requests.post(
                 "https://integrate.api.nvidia.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"},
+                headers={"Authorization": f"Bearer {primary_key}", "Content-Type": "application/json"},
                 json={"model": req_model, "messages": req_messages, "temperature": req_temp, "max_tokens": req_tokens, "stream": False},
-                timeout=10
+                timeout=6
             )
             if res.status_code == 200:
-                return res.json()
+                return clean_llm_json(res.json())
     except Exception as e:
-        print(f"[NVIDIA Chat Proxy] Llama 3.3 direct error: {e}")
+        print(f"[NVIDIA Chat Proxy] Primary model ({req_model}) error: {e}")
 
-    # 2. Try NVIDIA GLM 5.2 (z-ai/glm-5.2)
-    try:
-        if GLM_API_KEY:
-            res = requests.post(
-                "https://integrate.api.nvidia.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GLM_API_KEY}", "Content-Type": "application/json"},
-                json={"model": "z-ai/glm-5.2", "messages": req_messages, "temperature": req_temp, "max_tokens": req_tokens, "stream": False},
-                timeout=10
-            )
-            if res.status_code == 200:
-                return res.json()
-    except Exception as e:
-        print(f"[NVIDIA Chat Proxy] GLM-5.2 error: {e}")
-
-    # 3. Try NVIDIA Nemotron 3 Ultra 550B (nvidia/nemotron-3-ultra-550b-a55b)
+    # 2. Try Secondary NVIDIA Nemotron 3 Ultra 550B
     try:
         if NEMOTRON_API_KEY:
             res = requests.post(
                 "https://integrate.api.nvidia.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {NEMOTRON_API_KEY}", "Content-Type": "application/json"},
                 json={"model": "nvidia/nemotron-3-ultra-550b-a55b", "messages": req_messages, "temperature": req_temp, "max_tokens": req_tokens, "stream": False},
-                timeout=10
+                timeout=6
             )
             if res.status_code == 200:
-                return res.json()
+                return clean_llm_json(res.json())
     except Exception as e:
-        print(f"[NVIDIA Chat Proxy] Nemotron error: {e}")
+        print(f"[NVIDIA Chat Proxy] Nemotron Ultra error: {e}")
+
+    # 3. Try Secondary NVIDIA Nemotron 3 Super 120B
+    try:
+        super_key = NEMOTRON_API_KEY or NVIDIA_API_KEY
+        if super_key:
+            res = requests.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {super_key}", "Content-Type": "application/json"},
+                json={"model": "nvidia/nemotron-3-super-120b-a12b", "messages": req_messages, "temperature": req_temp, "max_tokens": req_tokens, "stream": False},
+                timeout=6
+            )
+            if res.status_code == 200:
+                return clean_llm_json(res.json())
+    except Exception as e:
+        print(f"[NVIDIA Chat Proxy] Nemotron Super error: {e}")
 
     # 4. Fallback to Groq API
     try:
@@ -1097,6 +1123,7 @@ async def nvidia_chat_proxy(request: Request):
     is_disease = any(w in user_text for w in ["disease", "blight", "rot", "wilt", "spot", "pest", "fungus", "insect", "நோய்", "பூச்சி", "அறிகுறி"])
     is_cultivation = any(w in user_text for w in ["grow", "plant", "sow", "cultivat", "care", "வளர்க்க", "பயிரிட", "நடவு", "என்ன பண்ணலாம்", "எப்படி", "சாகுபடி"])
     is_fertilizer = any(w in user_text for w in ["fertilizer", "manure", "npk", "urea", "dap", "உரம்", "உரங்கள்"])
+    is_soil = any(w in user_text for w in ["soil", "மண்", "மணல்", "கரிசல்", "வண்டல்", "செம்மண்", "நிலம்"])
     is_price = any(w in user_text for w in ["price", "market", "rate", "cost", "விலை", "சந்தை", "மண்டி"])
     is_weather = any(w in user_text for w in ["weather", "rain", "forecast", "மழை", "வானிலை", "வருமா"])
 
@@ -1114,7 +1141,16 @@ async def nvidia_chat_proxy(request: Request):
         else:
             fallback_content = f'{{"intent":"general","crop":"{crop_name_en}","location":null}}'
     else:
-        if is_cultivation:
+        if is_soil:
+            if "carrot" in user_text or "கேரட்" in user_text:
+                fallback_content = "கேரட் சாகுபடிக்கு ஆழமான, நல்ல வடிகால் வசதி கொண்ட மணல் கலந்த வண்டல் மண் (Sandy Loam) மிகவும் சிறந்தது."
+            elif "tomato" in user_text or "தக்காளி" in user_text:
+                fallback_content = "தக்காளி சாகுபடிக்கு நல்ல வடிகால் வசதியுள்ள செம்மண் மற்றும் வண்டல் மண் மிகவும் உகந்தது."
+            elif "paddy" in user_text or "rice" in user_text or "நெல்" in user_text:
+                fallback_content = "நெல் பயிருக்கு நீர் தேங்கும் திறன் கொண்ட களிமண் மற்றும் வண்டல் மண் சிறந்தது."
+            else:
+                fallback_content = f"{crop_name_tn} பயிர் வளர்ச்சிக்கு நல்ல வடிகால் வசதியுள்ள செம்மண் அல்லது வண்டல் மண் மிகவும் சிறந்தது."
+        elif is_cultivation:
             fallback_content = f"🌾 {crop_name_tn} பயிர் சாகுபடி & பராமரிப்பு வழிகாட்டி:\n\n" \
                                f"1. 🌱 நிலம் தயாரித்தல்: மண் நன்கு உழுது, தொழு உரம் (FYM) சேர்த்து நிலத்தை தயார் செய்யவும்.\n" \
                                f"2. 💧 நீர்ப்பாசனம்: விதைப்பு / நடவுக்குப் பின் மிதமான நீர்ப்பாசனம் அளித்து, நீர் தேங்குவதை தவிர்க்கவும்.\n" \

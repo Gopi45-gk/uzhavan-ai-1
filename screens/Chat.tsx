@@ -1,8 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Volume2, Mic, Paperclip, X, Image as ImageIcon, Clock, Trash2 } from 'lucide-react';
 import { getFarmerChatResponse } from '../services/geminiService';
-import { speakText, stopSpeech, isSpeaking } from '../services/ttsService';
+import { speakText, stopSpeech, isSpeaking, sanitizeTextForSpeech } from '../services/ttsService';
 import { ChatMessage } from '../types';
+import { getGlobalWebLlmEngine, getLanguageConfig } from './PhoneCall';
+import { getLocalizedGreeting, getStrictSystemPrompt, resolveIntelligentQueryRoute } from '../services/promptConfig';
+import { getStoredFarmerProfile } from '../services/farmerContextService';
+import { getOfflineAgriculturalResponse, analyzePlantDiseaseOffline } from '../services/offlineIntelligenceService';
+
+export { resolveIntelligentQueryRoute };
+
+export const CHAT_WEBLLM_SYSTEM_PROMPT = `You are Uzhavan AI, an expert agricultural assistant.
+STRICT RESPONSE BOUNDARIES (MANDATORY):
+1. ZERO FLUFF & STRICT PRECISION: Answer the farmer's question directly in exactly 1 or 2 short, precise sentences. No long paragraphs, no bullet points, no markdown headers, and no conversational fillers.
+2. EXACT INTENT MATCH: If the user asks a specific question (e.g., quantity, water amount, price, fertilizer dosage), answer ONLY that exact fact or number requested. Do NOT give unasked general advice or tips.
+3. NO OVER-ANSWERING: Never list multiple options or ramble when a single definitive answer is expected.
+4. ACTIVE LANGUAGE: Always answer strictly in the requested language.`;
 
 const HISTORY_KEY = 'uzhavan_chat_search_history';
 
@@ -25,9 +38,38 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [currentLanguage, setCurrentLanguage] = useState<string>(() => {
+    return language ||
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('uzhavan_app_language') || localStorage.getItem('uzhavan_selected_language') : null) ||
+      'tamil';
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Sync with language prop changes
+  useEffect(() => {
+    if (language) {
+      setCurrentLanguage(language);
+    }
+  }, [language]);
+
+  // Seamless State Propagation: Listen to language change events across the app
+  useEffect(() => {
+    const handleLangEvent = (e: any) => {
+      const newLang = e?.detail || (typeof localStorage !== 'undefined' ? localStorage.getItem('uzhavan_app_language') || localStorage.getItem('uzhavan_selected_language') : null);
+      if (newLang) {
+        console.log('🌍 [Chatbot] Language switch detected:', newLang);
+        setCurrentLanguage(newLang);
+      }
+    };
+    window.addEventListener('uzhavan_language_changed', handleLangEvent);
+    window.addEventListener('storage', handleLangEvent);
+    return () => {
+      window.removeEventListener('uzhavan_language_changed', handleLangEvent);
+      window.removeEventListener('storage', handleLangEvent);
+    };
+  }, []);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -58,29 +100,136 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
   };
 
   useEffect(() => {
+    const profile = getStoredFarmerProfile();
+    const userName = profile?.name || 'Farmer';
     setMessages([{
       id: '1',
       sender: 'ai',
-      text: t('askAnything') + '!'
+      text: getLocalizedGreeting(userName, currentLanguage)
     }]);
-  }, [language]);
+  }, [currentLanguage]);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const speakBrowserFallback = (text: string) => {
-    speakText(text, { language });
+  const stopAllAudio = () => {
+    if (ttsAudioRef.current) {
+      try {
+        ttsAudioRef.current.pause();
+        ttsAudioRef.current.src = '';
+      } catch {}
+      ttsAudioRef.current = null;
+    }
+    stopSpeech();
   };
 
+  const isAudioPlaying = () => {
+    return Boolean(
+      (ttsAudioRef.current && !ttsAudioRef.current.paused && !ttsAudioRef.current.ended) ||
+      isSpeaking()
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAllAudio();
+    };
+  }, []);
+
+  const speakBrowserFallback = (text: string) => {
+    const cleanText = sanitizeTextForSpeech(text);
+    speakText(cleanText || text, { language: currentLanguage || language });
+  };
+
+  // Uses the exact same studio call bot voice (/api/tts/speak Kokoro/Piper audio WAV) with browser fallback
   const playAudioResponse = (text: string) => {
     if (!text?.trim()) return;
-    if (isSpeaking()) {
-      stopSpeech();
+
+    // Toggle behavior: If audio is currently playing, tap to stop
+    if (isAudioPlaying()) {
+      stopAllAudio();
       return;
     }
-    speakText(text, { language });
+
+    const cleanText = sanitizeTextForSpeech(text);
+    if (!cleanText) return;
+
+    stopAllAudio();
+
+    const activeLang = (currentLanguage || language || 'english').toLowerCase();
+    const langCodeMap: Record<string, string> = {
+      tamil: 'ta',
+      ta: 'ta',
+      english: 'en',
+      en: 'en',
+      hindi: 'hi',
+      hi: 'hi',
+      telugu: 'te',
+      te: 'te',
+      kannada: 'kn',
+      kn: 'kn',
+      malayalam: 'ml',
+      ml: 'ml',
+    };
+    const langCode = langCodeMap[activeLang] || (activeLang === 'english' ? 'en' : 'ta');
+
+    console.log(`🎙️ [Chatbot TTS] Playing response with call bot voice (lang=${langCode}, activeLanguage=${activeLang}):`, cleanText.substring(0, 50));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    fetch(`/api/tts/speak?text=${encodeURIComponent(cleanText.substring(0, 800))}&lang=${langCode}`, {
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        clearTimeout(timeoutId);
+        if (res.ok && res.status === 200) {
+          const blob = await res.blob();
+          if (blob.size > 200) {
+            console.log('🎙️ [Chatbot TTS] Studio-quality call bot voice received (' + blob.size + ' bytes)');
+            if (ttsAudioRef.current) {
+              try {
+                ttsAudioRef.current.pause();
+                ttsAudioRef.current.src = '';
+              } catch {}
+              ttsAudioRef.current = null;
+            }
+
+            const objectUrl = URL.createObjectURL(blob);
+            const audio = new Audio(objectUrl);
+            audio.volume = 1.0;
+            ttsAudioRef.current = audio;
+
+            audio.onended = () => {
+              ttsAudioRef.current = null;
+              try { URL.revokeObjectURL(objectUrl); } catch {}
+            };
+
+            audio.onerror = () => {
+              console.warn('[Chatbot TTS] Audio playback error, falling back to browser voice');
+              ttsAudioRef.current = null;
+              try { URL.revokeObjectURL(objectUrl); } catch {}
+              speakBrowserFallback(cleanText);
+            };
+
+            audio.play().catch((err) => {
+              console.warn('[Chatbot TTS] Audio play caught error:', err, '-> browser fallback');
+              ttsAudioRef.current = null;
+              try { URL.revokeObjectURL(objectUrl); } catch {}
+              speakBrowserFallback(cleanText);
+            });
+            return;
+          }
+        }
+        speakBrowserFallback(cleanText);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        console.warn('[Chatbot TTS] Local voice endpoint error:', err?.message || err, '-> browser fallback');
+        speakBrowserFallback(cleanText);
+      });
   };
 
   const handleSend = async (overrideText?: string) => {
@@ -107,24 +256,154 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
     setShowHistory(false);
 
     try {
-      const responseText = await getFarmerChatResponse(
-        currentText || t('analyzeImage') || "Analyze this image",
-        language,
-        currentImage?.split(',')[1]
-      );
+      const activeLang = currentLanguage || language || 'tamil';
+      let responseText = '';
+      const cleanedQuery = (currentText || '').replace(/[*#_`]/g, '').trim();
+      const profile = getStoredFarmerProfile();
+      const profileDetails = {
+        farmerName: profile?.name || 'Farmer',
+        district: profile?.location || profile?.district || 'Tamil Nadu, India',
+        registeredCrop: profile?.crop_type || 'Paddy',
+        cropTamil: profile?.crop_type || 'நெல்',
+        soilType: profile?.soil_type || 'Clay Loam',
+        soilTamil: profile?.soil_type || 'வண்டல் மண்',
+        landArea: profile?.land_area || '',
+        farmingType: profile?.farming_type || ''
+      };
+
+      // ── FAST PATH: IMMEDIATE OFFLINE RESOLUTION (0ms latency, zero timeout) ──
+      if (!navigator.onLine) {
+        console.log('[Chatbot] Offline mode detected — resolving instantly via offline intelligence');
+        if (currentImage) {
+          responseText = await analyzePlantDiseaseOffline(currentImage, profileDetails.registeredCrop || 'general', activeLang);
+        } else {
+          responseText = getOfflineAgriculturalResponse(cleanedQuery || 'general', profileDetails, activeLang);
+        }
+      }
+
+      const farmerContext = [
+        getStrictSystemPrompt(activeLang),
+        '=== USER LOCATION & REGISTRATION DATA ===',
+        `- Farmer Name: ${profileDetails.farmerName}`,
+        `- User Location / District: ${profileDetails.district}`,
+        `- Registered Crop: ${profileDetails.registeredCrop}`,
+        `- Soil Type: ${profileDetails.soilType}`,
+        `CURRENT_QUESTION_FOCUS: Ignore prior conversation context. Answer ONLY this farmer query directly: "${cleanedQuery}"`
+      ].filter(Boolean).join('\n');
+
+      // 1. If singleton WebLLM model is already active and no image was uploaded, query WebLLM directly with timeout race
+      const webLlm = getGlobalWebLlmEngine();
+      if (!responseText && webLlm && !currentImage && cleanedQuery) {
+        try {
+          try { await webLlm.resetChat(true); } catch {}
+          console.log('[Chatbot WebLLM] Generating answer with strict boundaries (temp: 0.1, max_tokens: 150)...');
+          const webLlmPromise = webLlm.chat.completions.create({
+            messages: [
+              { role: 'system', content: farmerContext },
+              { role: 'user', content: cleanedQuery }
+            ],
+            temperature: 0.1,
+            max_tokens: 150,
+          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('WebLLM timeout')), 4500)
+          );
+          const completion: any = await Promise.race([webLlmPromise, timeoutPromise]);
+          const candidate = completion.choices?.[0]?.message?.content?.trim() || '';
+          if (candidate && candidate.length > 3 && !candidate.toLowerCase().includes('thinking')) {
+            responseText = candidate;
+          }
+        } catch (webLlmErr) {
+          console.warn('[Chatbot WebLLM notice, falling back to backend/cloud]:', webLlmErr);
+        }
+      }
+
+      // 2. Query backend chat API (/api/chat) with strict isolation
+      if (!responseText && !currentImage && cleanedQuery) {
+        try {
+          console.log('[Chatbot Backend LLM] Calling /api/chat with strict boundaries (temp: 0.1, max_tokens: 150)...');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const langCfg = getLanguageConfig(activeLang);
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              language: langCfg.code,
+              messages: [
+                { role: 'system', content: farmerContext },
+                { role: 'user', content: cleanedQuery }
+              ],
+              temperature: 0.1,
+              max_tokens: 150,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const data = await res.json();
+            const candidate = data.choices?.[0]?.message?.content?.trim();
+            if (candidate && !candidate.includes('fallback') && candidate.length > 2) {
+              responseText = candidate.replace(/[*#_`]/g, '').trim();
+            }
+          }
+        } catch (backendErr) {
+          console.warn('[Chatbot Backend /api/chat notice, falling back to geminiService]:', backendErr);
+        }
+      }
+
+      // 3. Query cloud LLM pipeline (Gemini / NVIDIA NIM proxy)
+      if (!responseText) {
+        try {
+          const res = await getFarmerChatResponse(
+            cleanedQuery || t('analyzeImage') || "Analyze this image",
+            activeLang,
+            currentImage?.split(',')[1]
+          );
+          if (res && !res.includes('மன்னிக்கவும், இப்போது') && !res.includes("don't have reliable information")) {
+            responseText = res;
+          }
+        } catch { /* proceed to offline fallback */ }
+      }
+
+      // 4. Guaranteed Zero-Dependency Offline Intelligence
+      if (!responseText) {
+        if (currentImage) {
+          responseText = await analyzePlantDiseaseOffline(currentImage, profileDetails.registeredCrop || 'general', activeLang);
+        } else {
+          responseText = getOfflineAgriculturalResponse(cleanedQuery, profileDetails, activeLang);
+        }
+      }
+
+      // 5. Strict 1-2 sentence boundary enforcement and markdown cleanup
+      if (responseText) {
+        responseText = responseText.replace(/[*#_`]/g, '').trim();
+        const sentences = responseText.split(/(?<=[.!?\n])\s+/).filter(Boolean);
+        if (sentences.length > 2) {
+          responseText = sentences.slice(0, 2).join(' ').trim();
+        }
+      }
 
       const aiMsg: ChatMessage = { id: (Date.now() + 1).toString(), sender: 'ai', text: responseText };
       setMessages(prev => [...prev, aiMsg]);
       setIsTyping(false);
       playAudioResponse(responseText);
     } catch (error) {
-      console.error("Chat error:", error);
+      console.error("Chat error, using offline intelligence fallback:", error);
+      const safeProfile = getStoredFarmerProfile();
+      const offlineReply = getOfflineAgriculturalResponse(cleanedQuery || 'general', {
+        farmerName: safeProfile?.name || 'Farmer',
+        district: safeProfile?.location || safeProfile?.district || 'Tamil Nadu',
+        crop: safeProfile?.crop_type || 'Paddy',
+        cropTamil: safeProfile?.crop_type || 'நெல்',
+      }, activeLang);
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: t('chatError') || 'Sorry, please try again.'
+        text: offlineReply
       }]);
       setIsTyping(false);
+      playAudioResponse(offlineReply);
     }
   };
 
@@ -135,8 +414,24 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
       return;
     }
 
+    const activeLang = (currentLanguage || language || 'english').toLowerCase();
+    const langMap: Record<string, string> = {
+      tamil: 'ta-IN',
+      ta: 'ta-IN',
+      english: 'en-IN',
+      en: 'en-IN',
+      hindi: 'hi-IN',
+      hi: 'hi-IN',
+      telugu: 'te-IN',
+      te: 'te-IN',
+      kannada: 'kn-IN',
+      kn: 'kn-IN',
+      malayalam: 'ml-IN',
+      ml: 'ml-IN',
+    };
+
     const recognition = new SpeechRecognition();
-    recognition.lang = language === 'tamil' ? 'ta-IN' : language === 'hindi' ? 'hi-IN' : language === 'telugu' ? 'te-IN' : language === 'kannada' ? 'kn-IN' : language === 'malayalam' ? 'ml-IN' : 'en-IN';
+    recognition.lang = langMap[activeLang] || 'en-IN';
     recognition.continuous = false;
     recognition.interimResults = false;
 
@@ -174,7 +469,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#f1f8f3] overflow-hidden font-['Inter']">
+    <div className="flex flex-col h-screen bg-[#f1f8f3] overflow-hidden font-sans regional-font">
       {/* Header */}
       <div className="flex items-center p-5 bg-[#1b5e20] shadow-xl z-20 text-white border-b border-white/10">
         <button onClick={onBack} className="mr-4 active:scale-90 transition-transform">
@@ -188,8 +483,8 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
           />
         </div>
         <div className="flex flex-col flex-1">
-          <h2 className="text-xl font-[1000] italic uppercase tracking-tight leading-none">{t('home_ai')}</h2>
-          <span className="text-[10px] font-black text-green-300 uppercase tracking-widest mt-1">{t('onlineExpert')}</span>
+          <h2 className="text-xl font-[1000] italic uppercase tracking-tight leading-none regional-font">{t('home_ai')}</h2>
+          <span className="text-[10px] font-black text-green-300 uppercase tracking-widest mt-1 regional-font">{t('onlineExpert')}</span>
         </div>
 
         {/* History Button */}
@@ -210,7 +505,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         <div className="absolute top-[76px] right-0 left-0 bottom-0 z-30 bg-white/95 backdrop-blur-sm overflow-y-auto" style={{ animation: 'fadeIn 0.2s ease' }}>
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 regional-font">
                 <Clock size={18} className="text-green-600" />
                 {t('searchHistory') || 'Search History'}
               </h3>
@@ -249,7 +544,18 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
                     }}
                     className="w-full text-left p-3 rounded-xl bg-green-50/70 hover:bg-green-100 border border-green-100 transition-colors"
                   >
-                    <p className="text-sm font-semibold text-gray-800" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.text}</p>
+                    <p
+                      className="text-sm font-semibold text-gray-800 regional-font"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        fontFamily: "'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Nirmala UI', 'Latha', 'Lohit Tamil', 'Inter', Arial, sans-serif"
+                      }}
+                    >
+                      {item.text}
+                    </p>
                     <p className="text-[10px] text-gray-400 mt-1">{formatHistoryTime(item.timestamp)}</p>
                   </button>
                 ))}
@@ -272,7 +578,13 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
                   <img src={msg.image} alt="User upload" className="w-full max-h-60 object-cover" />
                 </div>
               )}
-              <div className="leading-relaxed whitespace-pre-line text-sm font-normal">
+              <div
+                className="leading-relaxed whitespace-pre-line text-sm font-normal chat-bubble-text regional-font"
+                style={{
+                  fontFamily: "'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Nirmala UI', 'Latha', 'Lohit Tamil', 'Inter', Arial, sans-serif",
+                  textRendering: 'optimizeLegibility'
+                }}
+              >
                 {msg.text.replace(/\*\*/g, '').replace(/\*/g, '')}
               </div>
               {msg.sender === 'ai' && (
@@ -293,7 +605,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
               <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
-            <span className="text-xs font-black italic text-emerald-600 uppercase tracking-tighter">{t('thinking')}</span>
+            <span className="text-xs font-black italic text-emerald-600 uppercase tracking-tighter regional-font">{t('thinking')}</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -306,7 +618,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
             <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-white">
               <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
             </div>
-            <span className="text-[10px] font-black uppercase text-emerald-700 italic">{t('readyToAnalyze')}</span>
+            <span className="text-[10px] font-black uppercase text-emerald-700 italic regional-font">{t('readyToAnalyze')}</span>
             <button
               onClick={() => setSelectedImage(null)}
               className="ml-auto bg-white p-1.5 rounded-full shadow-sm text-red-500 active:scale-90"
@@ -330,7 +642,11 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder={t('askAnything')}
-              className="flex-1 bg-transparent focus:outline-none font-bold italic text-emerald-950 text-sm py-2"
+              className="flex-1 bg-transparent focus:outline-none font-bold italic text-emerald-950 text-sm py-2 regional-font"
+              style={{
+                fontFamily: "'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Nirmala UI', 'Latha', 'Lohit Tamil', 'Inter', Arial, sans-serif",
+                textRendering: 'optimizeLegibility'
+              }}
             />
 
             <button

@@ -10,11 +10,37 @@
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: [
+              'Noto Sans Tamil',
+              'Noto Sans Tamil UI',
+              'Tamil Sangam MN',
+              'Tamil MN',
+              'Noto Sans Telugu',
+              'Noto Sans Devanagari',
+              'Noto Sans Kannada',
+              'Noto Sans Malayalam',
+              'Inter',
+              'Nirmala UI',
+              'Latha',
+              'Lohit Tamil',
+              'Arial',
+              'sans-serif'
+            ],
+          }
+        }
+      }
+    };
+  </script>
 
-  <!-- Google Fonts (Inter + Noto Sans Indic languages) -->
+  <!-- Google Fonts (Inter + Noto Sans Indic languages + Noto Sans Tamil UI) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&family=Noto+Sans+Telugu:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Noto+Sans+Malayalam:wght@400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil+UI:wght@400;500;600;700;800;900&family=Noto+Sans+Telugu:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Noto+Sans+Malayalam:wght@400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml"
@@ -25,8 +51,8 @@
       box-sizing: border-box;
     }
 
-    body {
-      font-family: 'Noto Sans Tamil', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+    body, html {
+      font-family: 'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Inter', 'Nirmala UI', 'Latha', 'Lohit Tamil', Arial, sans-serif;
       background-color: #f1f8f3;
       margin: 0;
       padding: 0;
@@ -34,8 +60,19 @@
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
       touch-action: manipulation;
       /* prevents double-tap zoom on mobile */
+    }
+
+    /* Regional language & Tamil font enforcement with fallbacks */
+    .regional-font,
+    .chat-bubble-text,
+    .font-sans,
+    .font-\[\'Inter\'\] {
+      font-family: 'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Noto Sans Kannada', 'Noto Sans Malayalam', 'Inter', 'Nirmala UI', 'Latha', 'Lohit Tamil', Arial, sans-serif !important;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
     }
 
     .app-container {

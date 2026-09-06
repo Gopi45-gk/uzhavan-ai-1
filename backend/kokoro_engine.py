@@ -83,10 +83,45 @@ def init_kokoro():
 
     return None
 
+_PIPER_VOICE = None
+
+def init_piper():
+    global _PIPER_VOICE
+    if _PIPER_VOICE is not None:
+        return _PIPER_VOICE
+    try:
+        from piper import PiperVoice
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(base_dir, "models", "piper", "ta_IN-rasa_female-medium.onnx")
+        config_path = os.path.join(base_dir, "models", "piper", "ta_IN-rasa_female-medium.onnx.json")
+        if os.path.exists(model_path) and os.path.exists(config_path):
+            _PIPER_VOICE = PiperVoice.load(model_path, config_path=config_path)
+            print("✅ [Piper TTS Engine] Loaded studio-quality Piper Tamil model successfully")
+            return _PIPER_VOICE
+    except Exception as e:
+        print(f"⚠️ [Piper TTS Engine] Init notice: {e}")
+    return None
+
 def generate_kokoro_speech(text: str, lang: str = "ta") -> Optional[bytes]:
     cleaned = clean_text_for_speech(text)
     if not cleaned:
         return None
+
+    # 1. Primary: Studio-Quality Offline Piper Model for Tamil
+    lang_clean = lang.lower().split('-')[0]
+    if lang_clean in ["ta", "tamil"]:
+        piper_voice = init_piper()
+        if piper_voice is not None:
+            try:
+                import wave
+                buf = io.BytesIO()
+                with wave.open(buf, "wb") as wav_file:
+                    piper_voice.synthesize_wav(cleaned, wav_file)
+                audio_bytes = buf.getvalue()
+                if audio_bytes and len(audio_bytes) > 200:
+                    return audio_bytes
+            except Exception as e:
+                print(f"⚠️ [Piper TTS Engine] Synthesis notice: {e}")
 
     pipeline = init_kokoro()
     if pipeline is not None:

@@ -283,7 +283,7 @@ const styles: Record<string, React.CSSProperties> = {
     container: {
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+        fontFamily: "'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Nirmala UI', 'Latha', 'Lohit Tamil', 'Inter', 'Segoe UI', Arial, sans-serif",
     },
     header: {
         background: '#fff',
@@ -433,6 +433,7 @@ const styles: Record<string, React.CSSProperties> = {
         maxHeight: 300,
         overflowY: 'auto' as const,
         border: '1px solid #e5e7eb',
+        fontFamily: "'Noto Sans Tamil', 'Noto Sans Tamil UI', 'Tamil Sangam MN', 'Tamil MN', 'Nirmala UI', 'Latha', 'Lohit Tamil', 'Inter', 'Segoe UI', Arial, sans-serif",
     },
     retryBtn: {
         background: '#16a34a',

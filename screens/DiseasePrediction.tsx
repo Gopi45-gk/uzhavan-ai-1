@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ShieldAlert, CheckCircle2, RotateCcw, AlertCircle, ArrowLeft, Leaf, ChevronDown, ChevronUp } from 'lucide-react';
 import { analyzePlantDisease } from '../services/geminiService';
+import { analyzePlantDiseaseOffline } from '../services/offlineIntelligenceService';
 import { firebaseAuthService } from '../services/firebaseAuth';
 import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile } from '../services/farmerContextService';
@@ -367,28 +368,24 @@ const DiseasePrediction: React.FC<Props> = ({ onBack, language, t }) => {
         const cacheKey = imageData.substring(imageData.length - 50, imageData.length - 10);
         setCachedAnalysis(cacheKey, prediction);
       } else {
-        // OFFLINE: use built-in crop disease database
-        console.log('[Disease] Offline mode — using built-in database');
+        // OFFLINE: Use client-side canvas vision analyzer
+        console.log('[Disease] Offline mode — analyzing leaf via client canvas vision engine');
         const cropName = activeCrop || 'Rice';
-        const offlineDiseases = getOfflineDiseases(cropName);
-        if (offlineDiseases.length > 0) {
-          const offlineReport = `📱 OFFLINE MODE — Built-in Database\n\n` +
-            `🌾 Registered Crop: ${cropName}\n` +
-            `📸 Image captured but cannot analyze without internet.\n\n` +
-            `Common diseases for ${cropName}:\n\n` +
-            offlineDiseases.map((d, i) =>
-              `${i + 1}. 🦠 ${d.name}\n   📋 Symptoms: ${d.symptoms}\n   🔬 Causes: ${d.causes}\n   💊 Remedy: ${d.remedy}\n   🛡️ Prevention: ${d.prevention}\n`
-            ).join('\n');
-          setResult(offlineReport);
-        } else {
-          setResult(
-            `📱 OFFLINE MODE\n\n📸 Image captured successfully.\n⚠️ Cannot analyze without internet.\n\nPlease connect to internet and try again.`
-          );
-        }
+        const offlineReport = await analyzePlantDiseaseOffline(imageData, cropName, language);
+        setResult(offlineReport);
+        const cacheKey = imageData.substring(imageData.length - 50, imageData.length - 10);
+        setCachedAnalysis(cacheKey, offlineReport);
       }
     } catch (error) {
       console.error("Analysis error:", error);
       const cropForFallback = userCrop || 'Rice';
+      try {
+        const offlineReport = await analyzePlantDiseaseOffline(imageData, cropForFallback, language);
+        if (offlineReport) {
+          setResult(offlineReport);
+          return;
+        }
+      } catch {}
       const offlineDiseases = getOfflineDiseases(cropForFallback);
       if (offlineDiseases.length > 0) {
         setResult(`⚠️ Analysis unavailable.\n\nCommon diseases for ${cropForFallback}:\n\n` +

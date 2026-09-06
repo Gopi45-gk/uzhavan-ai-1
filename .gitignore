@@ -1,3 +1,31 @@
-node_modules
+# Dependencies
 node_modules/
+node_modules
+.pnp
+.pnp.js
+
+# Production build outputs
+dist/
+build/
 .vercel
+
+# Environment variables (never commit API keys!)
+.env
+.env.local
+.env.*.local
+!.env.production.example
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Scratch & temporary test files
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
