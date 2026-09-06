@@ -5,7 +5,7 @@ import { getAuth } from 'firebase/auth';
 import { firebaseAuthService } from '../services/firebaseAuth';
 import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile, getRecentDisease } from '../services/farmerContextService';
-import { speakText, stopSpeech } from '../services/ttsService';
+import { speakText, stopSpeech, sanitizeTextForSpeech } from '../services/ttsService';
 import { getApiBaseUrl } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -152,10 +152,29 @@ async function analyzeQueryIntents(
   if (detectedIntents.length === 0) detectedIntents.push('general_farming');
 
   // Crop entity extraction
-  const cropList = ['paddy', 'rice', 'நெல்', 'wheat', 'கோதுமை', 'cotton', 'பருத்தி', 'sugarcane', 'கரும்பு', 'maize', 'மக்காச்சோளம்', 'banana', 'வாழை', 'tomato', 'தக்காளி', 'onion', 'வெங்காயம்', 'chilli', 'மிளகாய்', 'turmeric', 'மஞ்சள்', 'groundnut', 'நிலக்கடலை', 'coconut', 'தென்னை', 'mango', 'மாங்காய்'];
+  const CROP_MAP: Record<string, string> = {
+    'கேரட்': 'Carrot', 'carrot': 'Carrot',
+    'தக்காளி': 'Tomato', 'tomato': 'Tomato',
+    'நெல்': 'Paddy', 'நெல்லு': 'Paddy', 'அரிசி': 'Paddy', 'paddy': 'Paddy', 'rice': 'Paddy',
+    'வெங்காயம்': 'Onion', 'onion': 'Onion',
+    'உருளை': 'Potato', 'உருளைக்கிழங்கு': 'Potato', 'potato': 'Potato', 'aloo': 'Potato',
+    'கத்தரி': 'Brinjal', 'கத்தரிக்காய்': 'Brinjal', 'brinjal': 'Brinjal',
+    'வெண்டை': 'Okra', 'வெண்டைக்காய்': 'Okra', 'okra': 'Okra',
+    'மிளகாய்': 'Chilli', 'chilli': 'Chilli', 'chili': 'Chilli',
+    'பருத்தி': 'Cotton', 'cotton': 'Cotton',
+    'கரும்பு': 'Sugarcane', 'sugarcane': 'Sugarcane',
+    'மக்காச்சோளம்': 'Maize', 'சோளம்': 'Maize', 'maize': 'Maize', 'corn': 'Maize',
+    'வாழை': 'Banana', 'வாழைக்காய்': 'Banana', 'banana': 'Banana',
+    'மஞ்சள்': 'Turmeric', 'turmeric': 'Turmeric',
+    'நிலக்கடலை': 'Groundnut', 'கடலை': 'Groundnut', 'groundnut': 'Groundnut', 'peanut': 'Groundnut',
+    'தென்னை': 'Coconut', 'தேங்காய்': 'Coconut', 'coconut': 'Coconut',
+    'கோதுமை': 'Wheat', 'wheat': 'Wheat',
+    'மாங்காய்': 'Mango', 'மாம்பழம்': 'Mango', 'mango': 'Mango',
+  };
   let extractedCrop: string | null = null;
-  for (const c of cropList) {
-    if (text.includes(c)) { extractedCrop = c; break; }
+  const textLower = text.toLowerCase();
+  for (const [kw, c] of Object.entries(CROP_MAP)) {
+    if (textLower.includes(kw)) { extractedCrop = c; break; }
   }
 
   // Location entity extraction
@@ -209,7 +228,7 @@ Respond strictly with valid JSON only:
         intents: detectedIntents,
         emotion: parsed.emotion || 'normal',
         language: userLang,
-        query_crop: parsed.query_crop || extractedCrop || profile.crop_type,
+        query_crop: extractedCrop || (parsed.query_crop && !['null', 'none'].includes(String(parsed.query_crop).toLowerCase()) ? parsed.query_crop : (profile.crop_type || 'Paddy')),
         query_location: parsed.query_location || extractedLocation || profile.district,
         requires_weather: Boolean(parsed.requires_weather || requires_weather),
         requires_market: Boolean(parsed.requires_market || requires_market),
@@ -228,7 +247,7 @@ Respond strictly with valid JSON only:
     intents: detectedIntents,
     emotion: isDisease ? 'worried' : 'normal',
     language: userLang,
-    query_crop: extractedCrop || profile.crop_type,
+    query_crop: extractedCrop || profile.crop_type || 'Paddy',
     query_location: extractedLocation || profile.district,
     requires_weather,
     requires_market,
@@ -307,6 +326,9 @@ async function fetchAgriculturalRAG(analysis: MultiSourceAnalysis, profile: Farm
   if (analysis.requires_chemical_remedy) {
     ragInfo += `- Chemical Treatment: Spray Mancozeb 75% WP at 2.5g/L or Carbendazim 50% WP at 1g/L. Follow product label for exact safety dosage.\n`;
   }
+  if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer|dap|potash/i.test(query)) {
+    ragInfo += `- Recommended Fertilizer Dosage for ${crop}: Basal application of Farmyard Manure (FYM 10-15 tonnes/ha). Balanced NPK recommendation (e.g. for carrot: 40:80:60 kg NPK/ha; for paddy: 120:40:40 kg/ha; for tomato: 100:50:50 kg/ha).\n`;
+  }
   if (analysis.requires_schemes) {
     ragInfo += `- Government Schemes: PM-KISAN, Pradhan Mantri Fasal Bima Yojana (Crop Insurance), Tamil Nadu Chief Minister Solar Pump Scheme.\n`;
   }
@@ -338,11 +360,12 @@ You MUST respond STRICTLY and ONLY in ${targetLang}.
 VOICE CALL RESPONSE RULES:
 1. Speak naturally like a knowledgeable rural farming elder on a live phone call.
 2. NEVER mention AI, model, API, backend, system, Groq, Gemini, NVIDIA, or internal logic.
-3. Incorporate provided Live Data (Weather, Market Prices, News, RAG Knowledge) naturally into your response.
+3. Incorporate provided Live Data (Weather, Market Prices, News, RAG Knowledge) naturally into your response for the specific crop asked.
 4. Preserves all numerical values (prices ₹, temperature °C, humidity %, dosages) EXACTLY without alteration.
 5. If live data is unavailable, clearly state so without inventing numbers or weather.
 6. Provide practical, immediate steps (organic remedies, chemical dosage, prevention techniques).
-7. Keep voice response short (2-3 sentences max), conversational, clear, and end with 1 natural follow-up question.`;
+7. Keep voice response short (2-3 sentences max), conversational, clear, and end with 1 natural follow-up question.
+8. NO EMOJIS, NO LISTS, NO BULLET POINTS: This text is read aloud on a telephone call. NEVER output emojis (🌾, 🌿, 🌱), numbered lists (1., 2.), or bullet points. Speak in natural continuous sentences.`;
 }
 
 async function callMultiModelEngine(
@@ -666,7 +689,8 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
 
   const speak = useCallback((text: string, langCode: string, onDone: () => void) => {
     if (!text) { onDone(); return; }
-    const clean = text.replace(/^['"]+|['"]+$/g, '').trim();
+    let clean = sanitizeTextForSpeech(text);
+    clean = clean.replace(/^['"]+|['"]+$/g, '').trim();
     if (!clean) { onDone(); return; }
 
     console.log('[TTS] Speaking:', clean.substring(0, 80), '| lang:', langCode);
@@ -681,7 +705,7 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
     const targetUrl = `${API_BASE_URL}/api/tts/speak?text=${encodeURIComponent(clean)}&lang=${shortLang}`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000);
+    const timeoutId = setTimeout(() => controller.abort(), 18000);
 
     fetch(targetUrl, { signal: controller.signal })
       .then(res => {
@@ -732,7 +756,15 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
     if (analysis.requires_news) {
       dataPromises.push(fetchNews(userLangCode, analysis.query_location || farmerProfile.district));
     }
-    if (analysis.requires_disease_rag || analysis.requires_prevention || analysis.requires_natural_remedy || analysis.requires_chemical_remedy || analysis.requires_schemes) {
+    if (
+      analysis.requires_disease_rag ||
+      analysis.requires_prevention ||
+      analysis.requires_natural_remedy ||
+      analysis.requires_chemical_remedy ||
+      analysis.requires_schemes ||
+      analysis.intents.includes('fertilizer') ||
+      analysis.intents.includes('soil')
+    ) {
       dataPromises.push(fetchAgriculturalRAG(analysis, farmerProfile, message));
     }
 
