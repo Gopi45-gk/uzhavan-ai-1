@@ -5,7 +5,7 @@ import { getAuth } from 'firebase/auth';
 import { firebaseAuthService } from '../services/firebaseAuth';
 import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile, getRecentDisease } from '../services/farmerContextService';
-import { speakText, stopSpeech, sanitizeTextForSpeech } from '../services/ttsService';
+import { speakText, stopSpeech, sanitizeTextForSpeech, splitTextIntoSentences } from '../services/ttsService';
 import { getApiBaseUrl } from '../services/api';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -593,6 +593,7 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
   const animFrameRef = useRef<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const unlockedAudioRef = useRef(false);
+  const ttsSessionIdRef = useRef<number>(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -731,6 +732,7 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
     clean = clean.replace(/^['"]+|['"]+$/g, '').trim();
     if (!clean) { onDone(); return; }
 
+    const sessionId = ++ttsSessionIdRef.current;
     console.log('[TTS] Speaking:', clean.substring(0, 80), '| lang:', langCode);
     stopListening();
     stopSpeech();
@@ -739,26 +741,95 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
       audioRef.current = null;
     }
 
+    const sentences = splitTextIntoSentences(clean);
+    if (sentences.length === 0) { onDone(); return; }
+
     const shortLang = LANG_SHORT[langCode] || langCode.split('-')[0] || 'ta';
-    const targetUrl = `${API_BASE_URL}/api/tts/speak?text=${encodeURIComponent(clean)}&lang=${shortLang}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 18000);
+    const fetchSentenceAudio = (sentenceText: string): Promise<Blob> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const targetUrl = `${API_BASE_URL}/api/tts/speak?text=${encodeURIComponent(sentenceText)}&lang=${shortLang}`;
+      return fetch(targetUrl, { signal: controller.signal })
+        .then(res => {
+          clearTimeout(timeoutId);
+          if (!res.ok) throw new Error(`TTS status ${res.status}`);
+          return res.blob();
+        })
+        .catch(err => {
+          clearTimeout(timeoutId);
+          throw err;
+        });
+    };
 
-    fetch(targetUrl, { signal: controller.signal })
-      .then(res => {
-        clearTimeout(timeoutId);
-        if (!res.ok) throw new Error(`Kokoro TTS status ${res.status}`);
-        return res.blob();
-      })
-      .then(blob => {
-        playAudioBlob(blob, onDone, () => speakBrowserFallback(clean, langCode, onDone));
-      })
-      .catch((err) => {
-        clearTimeout(timeoutId);
-        console.warn('[TTS] Local TTS backend unreachable, falling back to browser voice:', err);
-        speakBrowserFallback(clean, langCode, onDone);
-      });
+    const prefetchMap = new Map<number, Promise<Blob>>();
+    const getOrPrefetch = (idx: number): Promise<Blob> => {
+      if (idx >= sentences.length) return Promise.reject(new Error('Out of bounds'));
+      if (!prefetchMap.has(idx)) {
+        prefetchMap.set(idx, fetchSentenceAudio(sentences[idx]));
+      }
+      return prefetchMap.get(idx)!;
+    };
+
+    // Pre-fetch sentence 0 immediately
+    getOrPrefetch(0);
+    // Pre-fetch sentence 1 in parallel if available
+    if (sentences.length > 1) {
+      getOrPrefetch(1);
+    }
+
+    let currentIndex = 0;
+
+    const playNextSentence = () => {
+      if (!isActiveRef.current || ttsSessionIdRef.current !== sessionId) return;
+
+      if (currentIndex >= sentences.length) {
+        if (isActiveRef.current && ttsSessionIdRef.current === sessionId) {
+          onDone();
+        }
+        return;
+      }
+
+      const segText = sentences[currentIndex];
+      const thisIdx = currentIndex;
+      currentIndex++;
+
+      // Trigger prefetch for upcoming sentence
+      if (currentIndex < sentences.length) {
+        getOrPrefetch(currentIndex);
+      }
+
+      getOrPrefetch(thisIdx)
+        .then(blob => {
+          if (!isActiveRef.current || ttsSessionIdRef.current !== sessionId) return;
+          playAudioBlob(
+            blob,
+            () => {
+              if (isActiveRef.current && ttsSessionIdRef.current === sessionId) {
+                playNextSentence();
+              }
+            },
+            () => {
+              if (!isActiveRef.current || ttsSessionIdRef.current !== sessionId) return;
+              speakBrowserFallback(segText, langCode, () => {
+                if (isActiveRef.current && ttsSessionIdRef.current === sessionId) {
+                  playNextSentence();
+                }
+              });
+            }
+          );
+        })
+        .catch(() => {
+          if (!isActiveRef.current || ttsSessionIdRef.current !== sessionId) return;
+          speakBrowserFallback(segText, langCode, () => {
+            if (isActiveRef.current && ttsSessionIdRef.current === sessionId) {
+              playNextSentence();
+            }
+          });
+        });
+    };
+
+    playNextSentence();
   }, [playAudioBlob, speakBrowserFallback]);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -971,6 +1042,7 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
   const endCall = () => {
     const duration = callDuration;
     isActiveRef.current = false;
+    ttsSessionIdRef.current++;
     stopListening();
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try { window.speechSynthesis.cancel(); } catch {}

@@ -128,6 +128,7 @@ export function getBestVoiceForLanguage(lang: string): SpeechSynthesisVoice | nu
 }
 
 let isSpeakingActive = false;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 /**
  * Immediately stops any ongoing speech.
@@ -137,6 +138,7 @@ export function stopSpeech(): void {
   try {
     window.speechSynthesis.cancel();
   } catch {}
+  activeUtterance = null;
   isSpeakingActive = false;
 }
 
@@ -188,12 +190,14 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
   const speakNextSegment = () => {
     if (!isSpeakingActive || index >= sentences.length) {
       isSpeakingActive = false;
+      activeUtterance = null;
       if (options.onEnd) options.onEnd();
       return;
     }
 
     const currentText = sentences[index];
     const utterance = new SpeechSynthesisUtterance(currentText);
+    activeUtterance = utterance;
     utterance.lang = targetLangCode;
     utterance.rate = options.rate ?? 0.92; // Slightly slower, natural farmer tempo
     utterance.pitch = options.pitch ?? 1.0;
@@ -204,6 +208,7 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
     }
 
     utterance.onend = () => {
+      activeUtterance = null;
       index++;
       // Short 120ms natural pause between sentences
       setTimeout(() => {
@@ -213,8 +218,13 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
       }, 120);
     };
 
-    utterance.onerror = (e) => {
-      console.warn('[TTS Engine] Sentence playback warning:', e);
+    utterance.onerror = (e: any) => {
+      activeUtterance = null;
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        // Normal expected cancellation when speech is interrupted
+        return;
+      }
+      console.warn('[TTS Engine] Sentence playback notice:', e.error || e);
       index++;
       if (index < sentences.length && isSpeakingActive) {
         speakNextSegment();
@@ -225,13 +235,22 @@ export function speakText(text: string, options: SpeakOptions = {}): void {
     };
 
     try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       window.speechSynthesis.speak(utterance);
     } catch (err) {
-      console.warn('[TTS Engine] Speak error:', err);
+      console.warn('[TTS Engine] Speak notice:', err);
       isSpeakingActive = false;
+      activeUtterance = null;
       if (options.onEnd) options.onEnd();
     }
   };
 
-  speakNextSegment();
+  // 40ms pause to ensure previous speechSynthesis.cancel() finishes in browser engine
+  setTimeout(() => {
+    if (isSpeakingActive) {
+      speakNextSegment();
+    }
+  }, 40);
 }
