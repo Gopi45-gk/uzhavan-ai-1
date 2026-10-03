@@ -2,12 +2,7 @@
   <img src="https://i.ibb.co/60f9sTw2/uzhavan-logo.png" alt="Uzhavan AI Logo" width="160" height="160" style="border-radius: 50%; border: 4px solid #22c55e;" />
   <h1>🌾 UZHAVAN AI (உழவன் AI)</h1>
   <p><b>Next-Gen Multilingual Agricultural AI Assistant & Intelligent Voice Call Bot</b></p>
-  <br><br>
-
-🌐 Live Website: https://uzhavan-ai.duckdns.org/
-
-</div>
-
+ 
   [![React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
