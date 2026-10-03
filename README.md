@@ -2,12 +2,21 @@
   <img src="https://i.ibb.co/60f9sTw2/uzhavan-logo.png" alt="Uzhavan AI Logo" width="160" height="160" style="border-radius: 50%; border: 4px solid #22c55e;" />
   <h1>🌾 UZHAVAN AI (உழவன் AI)</h1>
   <p><b>Next-Gen Multilingual Agricultural AI Assistant & Intelligent Voice Call Bot</b></p>
+  <br><br>
 
-  [![React](https.img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
+🌐 Live Website: https://uzhavan-ai.duckdns.org/
+
+</div>
+
+  [![React](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
   [![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-orange.svg)](https://firebase.google.com/)
   [![NVIDIA NIM](https://img.shields.io/badge/NVIDIA_NIM-Llama--3.3--70B-green.svg)](https://build.nvidia.com/)
+
+  <br><br>
+
+  🌐 **Live Website:** [https://uzhavan-ai.duckdns.org/](https://uzhavan-ai.duckdns.org/)
 </div>
 
 ---
@@ -45,25 +54,25 @@
 
 ```mermaid
 graph TD
-    User((Farmer)) <--> VoiceUI[Voice & Web Interface]
-    VoiceUI <--> STT_TTS[Speech-To-Text / Text-To-Speech]
-    VoiceUI <--> Router[16-Intent Agriculture Router]
-    
-    subgraph Multi-Source Data Engine
-        Router --> WeatherAPI[Live Weather API]
-        Router --> MarketAPI[Agmarknet Mandi Prices]
-        Router --> NewsAPI[Agri News Engine]
-        Router --> RAG[Agri Knowledge Base RAG]
-    end
-    
-    subgraph Multi-Model AI Fallback Pipeline
-        WeatherAPI & MarketAPI & NewsAPI & RAG --> NVIDIA[1. NVIDIA NIM Llama-3.3-70B]
-        NVIDIA -- Fallback --> Groq[2. Groq Llama-3.3-70B]
-        Groq -- Fallback --> Gemini[3. Gemini 2.0 Flash]
-        Gemini -- Fallback --> LocalRAG[4. Offline Local RAG Generator]
-    end
-    
-    LocalRAG --> VoiceUI
+   User((Farmer)) <--> VoiceUI[Voice & Web Interface]
+   VoiceUI <--> STT_TTS[Speech-To-Text / Text-To-Speech]
+   VoiceUI <--> Router[16-Intent Agriculture Router]
+   
+   subgraph Multi-Source Data Engine
+       Router --> WeatherAPI[Live Weather API]
+       Router --> MarketAPI[Agmarknet Mandi Prices]
+       Router --> NewsAPI[Agri News Engine]
+       Router --> RAG[Agri Knowledge Base RAG]
+   end
+   
+   subgraph Multi-Model AI Fallback Pipeline
+       WeatherAPI & MarketAPI & NewsAPI & RAG --> NVIDIA[1. NVIDIA NIM Llama-3.3-70B]
+       NVIDIA -- Fallback --> Groq[2. Groq Llama-3.3-70B]
+       Groq -- Fallback --> Gemini[3. Gemini 2.0 Flash]
+       Gemini -- Fallback --> LocalRAG[4. Offline Local RAG Generator]
+   end
+   
+   LocalRAG --> VoiceUI
 ```
 
 - **Frontend**: React 18, TypeScript, Vite, Lucide Icons, TailwindCSS.
