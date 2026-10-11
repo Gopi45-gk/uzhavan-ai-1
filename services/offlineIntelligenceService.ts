@@ -5,9 +5,10 @@
  * Zero-dependency offline agricultural expert database, intent classifier,
  * multi-language response generator, and client-side canvas vision analyzer.
  * Supports: Tamil, English, Hindi, Telugu, Kannada, Malayalam.
+ * Verified with ICAR & TNAU agronomic Package of Practices.
  */
 
-// --- 1. DEEP CROP KNOWLEDGE BASE (14 MAJOR CROPS) ---
+// --- 1. DEEP CROP KNOWLEDGE BASE (24 MAJOR INDIAN CROPS) ---
 export interface CropData {
   name: { [key: string]: string };
   varieties: string[];
@@ -27,19 +28,19 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["ADT 36", "CR 1009", "BPT 5204 (Samba Masuri)", "CO 51", "ASD 16"],
     sowingTime: "Kharif: June-July | Rabi: November-December",
     soil: "களிமண் மற்றும் வண்டல் மண் (Clay to clayey loam, pH 5.5 - 6.5)",
-    npk: "120:40:40 kg NPK per hectare (DAP 50kg, Potash 25kg basal)",
+    npk: "120:40:40 kg NPK per hectare (DAP 50kg, Potash 25kg basal; Urea top-dressed at tillering and panicle initiation)",
     irrigation: "Maintain 2-5 cm standing water from transplanting up to 10 days before harvest.",
     pestsAndDiseases: "Stem borer, Leaf folder, Blast (Pyricularia oryzae), Brown planthopper.",
     organicRemedy: "Spray Neem oil 3% at 15-day intervals; apply Pseudomonas fluorescens @ 10g/kg seed.",
     chemicalDosage: "Tricyclazole 75% WP @ 0.6g/liter for blast control; Cartap Hydrochloride 4G for stem borer.",
-    marketBenchmark: "Average Mandi Price: ₹2,100 - ₹2,650 per quintal."
+    marketBenchmark: "Average Mandi Price: ₹2,100 - ₹2,650 per quintal (Govt MSP Grade A: ₹2,320/q)."
   },
   tomato: {
     name: { ta: "தக்காளி", en: "Tomato", hi: "टमाटर", te: "టమోటా", kn: "ಟೊಮೆಟೊ", ml: "തക്കാളി" },
     varieties: ["PKM 1", "Arka Rakshak", "CO 3", "Shivani", "Abhinash 2"],
     sowingTime: "June-July and November-December (All year round under irrigation)",
     soil: "நல்ல வடிகால் வசதியுள்ள செம்மண் அல்லது வண்டல் மண் (Sandy loam / Red loam, pH 6.0 - 7.0)",
-    npk: "100:50:50 kg NPK per hectare + FYM 25 tonnes",
+    npk: "100:50:50 kg NPK per hectare + FYM 25 tonnes (Basal: 50kg N, 50kg P, 50kg K; Top dressing: 50kg N at 30 days)",
     irrigation: "Drip irrigation preferred; irrigate every 3-4 days to avoid fruit cracking.",
     pestsAndDiseases: "Fruit borer, Whitefly, Early/Late blight, Tomato Leaf Curl Virus (TLCV).",
     organicRemedy: "Install yellow sticky traps @ 12/acre for whiteflies; spray Verticillium lecanii or neem oil 3%.",
@@ -51,7 +52,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Co 4", "Co 5 (Shallots)", "Agrifound Dark Red", "Pusa Red", "Nashik Red"],
     sowingTime: "May-June (Kharif) and September-October (Rabi)",
     soil: "மணல் கலந்த செம்மண் அல்லது வண்டல் மண் (Sandy loam / Alluvial, pH 6.0 - 7.5)",
-    npk: "60:60:30 kg NPK per hectare + Gypsum 50 kg",
+    npk: "60:60:30 kg NPK per hectare + Gypsum 50 kg (Split: full P and K basal, N in two equal splits)",
     irrigation: "Light irrigation every 7-10 days; stop irrigation 15 days before harvest.",
     pestsAndDiseases: "Thrips, Purple blotch, Basal rot.",
     organicRemedy: "Spray Verticillium lecanii for thrips control; seed treatment with Trichoderma viride.",
@@ -63,7 +64,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Ooty 1", "Kodaikanal 1", "Nantes", "Pusa Kesar", "New Kuroda"],
     sowingTime: "August to November in hills; October-November in plains (Cool climate optimal)",
     soil: "ஆழமான, நல்ல வடிகால் வசதியுள்ள மணல் கலந்த வண்டல் மண் (Deep sandy loam, pH 6.0 - 6.8)",
-    npk: "40:80:60 kg NPK per hectare",
+    npk: "40:80:60 kg NPK per hectare (Full P and K + half N basal; remaining N at 30 days)",
     irrigation: "Regular uniform irrigation every 5-7 days to prevent root splitting and deformation.",
     pestsAndDiseases: "Cavity spot, Root-knot nematode, Alternaria leaf blight.",
     organicRemedy: "Apply Neem cake @ 250 kg/acre during land preparation to control nematodes and soil grubs.",
@@ -75,19 +76,19 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Bt Cotton hybrids", "MCU 5", "Surabhi", "SVPR 2"],
     sowingTime: "August-September or February-March",
     soil: "ஆழமான கரிசல் மண் (Deep fertile black cotton soil / Alluvial, pH 6.5 - 8.0)",
-    npk: "80:40:40 kg NPK per hectare",
+    npk: "80:40:40 kg NPK per hectare (Half N + full P & K basal; remaining N split at squaring and flowering)",
     irrigation: "Critical irrigation at flowering, square, and boll formation stages.",
     pestsAndDiseases: "Pink bollworm, Aphids, Leaf hopper, Bacterial blight.",
     organicRemedy: "Grow trap crops like marigold; release Chrysoperla carnea eggs @ 10,000/ha.",
     chemicalDosage: "Flonicamid 50% WG @ 0.3g/liter for sucking pests; Emamectin Benzoate 5% SG @ 0.4g/L for bollworm.",
-    marketBenchmark: "Average Mandi Price: ₹6,500 - ₹7,500 per quintal."
+    marketBenchmark: "Average Mandi Price: ₹6,500 - ₹7,500 per quintal (Govt MSP Long Staple: ₹7,521/q)."
   },
   chilli: {
     name: { ta: "மிளகாய்", en: "Chilli", hi: "मिर्च", te: "మిరప", kn: "ಮೆಣಸಿನಕಾಯಿ", ml: "മുളക്" },
     varieties: ["K 1", "Co 4", "PKM 1", "Arka Meghana"],
     sowingTime: "June-July and September-October",
     soil: "செம்மண் மற்றும் மணல் கலந்த வண்டல் மண் (Sandy loam / Red soil, pH 6.5 - 7.5)",
-    npk: "120:60:60 kg NPK per hectare",
+    npk: "120:60:60 kg NPK per hectare (Half N + full P & K basal; remaining N at 30, 60, and 90 DAS)",
     irrigation: "Moderate irrigation; avoid water stagnation at flowering to prevent flower drop.",
     pestsAndDiseases: "Thrips, Mites, Fruit rot (Anthracnose), Leaf curl virus.",
     organicRemedy: "Yellow and blue sticky traps (12/acre); spray neem oil 3% or diluted fermented curd.",
@@ -99,7 +100,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Poovan", "Grand Naine (G9)", "Red Banana (செவ்வாழை)", "Rasthali", "Nendran"],
     sowingTime: "February-April and August-October",
     soil: "வளமான, நல்ல வடிகால் வசதியுள்ள ஆற்று வண்டல் மண் (Rich alluvial loam, pH 6.0 - 7.5)",
-    npk: "200g Urea, 200g Potash, 100g Superphosphate per plant in 3 split doses",
+    npk: "200g Urea, 200g Potash, 100g Superphosphate per plant in 3 split doses at 3rd, 5th, and 7th month",
     irrigation: "Drip irrigation preferred (15-20 liters/plant/day depending on temperature).",
     pestsAndDiseases: "Panama wilt (Fusarium), Sigatoka leaf spot, Banana pseudostem weevil.",
     organicRemedy: "Pseudomonas fluorescens 50g per pit at planting; neem cake 250g for nematode control.",
@@ -111,7 +112,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Kufri Jyoti", "Kufri Chandramukhi", "Kufri Pukhraj"],
     sowingTime: "October-November (Plains) | April-May (Hills)",
     soil: "மண் எளிதில் இளகக்கூடிய மணல் கலந்த வண்டல் மண் (Loose well-drained sandy loam, pH 5.2 - 6.4)",
-    npk: "120:100:100 kg NPK per hectare",
+    npk: "120:100:100 kg NPK per hectare (Half N + full P & K basal; remaining N at earthing up 30 DAS)",
     irrigation: "Light irrigation every 7-10 days; avoid waterlogging during tuber development.",
     pestsAndDiseases: "Late blight (Phytophthora), Early blight, Cutworm.",
     organicRemedy: "Trichoderma viride seed treatment @ 5g/kg; spray fermented buttermilk solution.",
@@ -123,19 +124,19 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["COH(M) 6", "COH(M) 8", "Pioneer Hybrids", "DeKalb 9108"],
     sowingTime: "June-July (Kharif) and October-November (Rabi)",
     soil: "வண்டல் மண் மற்றும் நல்ல வடிகால் செம்மண் (Well-drained loam to clay loam, pH 6.0 - 7.5)",
-    npk: "135:62.5:50 kg NPK per hectare",
+    npk: "135:62.5:50 kg NPK per hectare + Zinc Sulphate 25 kg/ha basal (N split: 25% basal, 50% knee-high, 25% tasseling)",
     irrigation: "Critical irrigation at knee-high, tasseling, and silking stages.",
     pestsAndDiseases: "Fall Armyworm (FAW), Stem borer, Turcicum leaf blight.",
-    organicRemedy: "Pour dry sand + neem powder mixture into whorls; release egg parasitoid Trichogramma.",
+    organicRemedy: "Pour dry sand + neem seed powder mixture into leaf whorls; release Trichogramma parasitoids.",
     chemicalDosage: "Chlorantraniliprole 18.5% SC @ 0.4ml/liter or Emamectin Benzoate 5% SG @ 0.4g/L for FAW.",
-    marketBenchmark: "Average Mandi Price: ₹2,100 - ₹2,450 per quintal."
+    marketBenchmark: "Average Mandi Price: ₹2,100 - ₹2,450 per quintal (Govt MSP: ₹2,225/q)."
   },
   sugarcane: {
     name: { ta: "கரும்பு", en: "Sugarcane", hi: "गन्ना", te: "చెరకు", kn: "ಕಬ್ಬು", ml: "കരിമ്പ്" },
     varieties: ["Co 86032 (Nayana)", "CoC 24", "Co 0212", "Co 11015"],
     sowingTime: "Early season: Dec-Jan | Mid-season: Feb-Mar",
     soil: "ஆழமான வண்டல் மண் மற்றும் களிமண் (Deep alluvial loam or clayey loam, pH 6.5 - 8.0)",
-    npk: "275:62.5:112.5 kg NPK per hectare",
+    npk: "275:62.5:112.5 kg NPK per hectare in 3 splits (30, 60, and 90 days after planting)",
     irrigation: "Irrigate every 7-10 days in summer; avoid water stagnation in root zone.",
     pestsAndDiseases: "Early shoot borer, Internode borer, Red rot (Colletotrichum), Smut.",
     organicRemedy: "Trichogramma chilonis egg cards @ 2.5 cc/acre; trash mulching to conserve moisture.",
@@ -147,7 +148,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["CO 2", "PKM 1", "Annamalai", "Bhavani"],
     sowingTime: "December-January and May-June",
     soil: "வண்டல் மண் மற்றும் செம்மண் (Fertile loam / Clay loam, pH 6.0 - 7.0)",
-    npk: "100:50:30 kg NPK per hectare",
+    npk: "100:50:30 kg NPK per hectare (Half N + full P & K basal; remaining N at 30 days after transplanting)",
     irrigation: "Regular light irrigation every 3-5 days; drip irrigation recommended.",
     pestsAndDiseases: "Shoot and fruit borer (Leucinodes), Epilachna beetle, Little leaf virus.",
     organicRemedy: "Install pheromone traps (5/acre); clip infested shoots weekly; spray NSKE 5%.",
@@ -159,7 +160,7 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["Arka Anamika", "Parbhani Kranti", "Co 3", "Kashi Kranti"],
     sowingTime: "June-August (Kharif) and February-March (Summer)",
     soil: "மணல் கலந்த செம்மண் அல்லது வண்டல் மண் (Sandy loam / Red loam, pH 6.0 - 7.2)",
-    npk: "40:50:30 kg NPK per hectare",
+    npk: "40:50:30 kg NPK per hectare (Full P and K + half N basal; remaining N at 30 days after sowing)",
     irrigation: "Irrigate every 4-5 days in summer; avoid water stagnation.",
     pestsAndDiseases: "Yellow Vein Mosaic Virus (YVMV), Fruit borer, Jassids.",
     organicRemedy: "Yellow sticky traps for whitefly vectors; spray neem oil 3%; grow YVMV resistant seeds.",
@@ -171,24 +172,297 @@ export const OFFLINE_CROP_DATABASE: { [key: string]: CropData } = {
     varieties: ["VRI 2", "TMV 7", "TMV 13", "Kadiri 6", "TAG 24"],
     sowingTime: "June-July (Rainfed) and December-January (Irrigated)",
     soil: "மணல் கலந்த செம்மண் (Sandy loam / Light red soil with good drainage, pH 6.0 - 7.5)",
-    npk: "17:35:54 kg NPK per hectare + Gypsum 400 kg/ha at 45 DAS",
+    npk: "17:35:54 kg NPK per hectare + Gypsum 400 kg/ha at 45 DAS (peg formation)",
     irrigation: "Critical irrigations at flowering, pegging, and pod development stages.",
     pestsAndDiseases: "Tikka leaf spot, Rust, Collar rot, Spodoptera litura.",
     organicRemedy: "Seed treatment with Trichoderma viride @ 4g/kg; apply gypsum 40 days after sowing.",
     chemicalDosage: "Hexaconazole 5% EC @ 1ml/L or Mancozeb @ 2g/L for Tikka disease and rust.",
-    marketBenchmark: "Average Mandi Price: ₹6,200 - ₹7,400 per quintal."
+    marketBenchmark: "Average Mandi Price: ₹6,200 - ₹7,400 per quintal (Govt MSP: ₹6,783/q)."
   },
   turmeric: {
     name: { ta: "மஞ்சள்", en: "Turmeric", hi: "हल्दी", te: "పసుపు", kn: "ಅರಿಶಿನ", ml: "മഞ്ഞൾ" },
     varieties: ["BSR 1", "BSR 2", "IISR Pratibha", "Erode Local"],
     sowingTime: "May-June (With onset of South-West Monsoon)",
     soil: "வளமான செம்மண் மற்றும் வண்டல் மண் (Fertile well-drained loam / Clay loam, pH 6.0 - 7.5)",
-    npk: "125:60:90 kg NPK per hectare + 25 tonnes FYM",
+    npk: "125:60:90 kg NPK per hectare + 25 tonnes FYM (N split at 30, 60, 90, and 120 days)",
     irrigation: "Irrigate every 7-10 days depending on soil moisture; ridging prevents rhizome rot.",
     pestsAndDiseases: "Rhizome rot (Pythium), Leaf spot (Colletotrichum), Shoot borer.",
     organicRemedy: "Rhizome dip in Pseudomonas @ 10g/L; drench with Trichoderma viride @ 2.5 kg/acre.",
     chemicalDosage: "Copper Oxychloride @ 3g/L or Ridomil MZ @ 2.5g/L for rhizome rot management.",
     marketBenchmark: "Average Mandi Price: ₹12,000 - ₹16,500 per quintal."
+  },
+  coconut: {
+    name: { ta: "தென்னை", en: "Coconut", hi: "नारियल", te: "కొబ్బరి", kn: "ತೆಂಗು", ml: "തെങ്ങ്" },
+    varieties: ["West Coast Tall (WCT)", "East Coast Tall (ECT)", "VHC 2", "Arasampatti Tall"],
+    sowingTime: "June-July or October-November (Planting in 1m x 1m pits with 7.5m spacing)",
+    soil: "நல்ல வடிகால் வசதியுள்ள மணல் கலந்த செம்மண் அல்லது வண்டல் மண் (Sandy loam / Red loam, pH 5.5 - 7.5)",
+    npk: "1.3 kg Urea, 2.0 kg Superphosphate, 2.0 kg Potash (MOP) per adult palm per year in two splits",
+    irrigation: "Drip irrigation 50-80 liters per tree per day (or basin irrigation every 4-5 days).",
+    pestsAndDiseases: "Rhinoceros beetle, Red palm weevil, Tanjore wilt (Ganoderma), Rugose spiralling whitefly.",
+    organicRemedy: "Extract beetles with iron hook; fill leaf axils with 250g neem cake + sand; release parasitoids.",
+    chemicalDosage: "Root feeding with Azadirachtin 10ml in 10ml water or Hexaconazole 2ml for wilt.",
+    marketBenchmark: "Average Mandi Price: ₹25 - ₹40 per nut (Copra ₹8,500 - ₹11,500/quintal)."
+  },
+  mango: {
+    name: { ta: "மாங்காய் / மாமரம்", en: "Mango", hi: "आम", te: "మామిడి", kn: "ಮಾವು", ml: "മാങ്ങ" },
+    varieties: ["Alphonso", "Banganapalli", "Neelum", "Imampasand", "Mallika", "Bangalora"],
+    sowingTime: "July to December (Square planting 10m x 10m or High density 5m x 5m)",
+    soil: "ஆழமான, நல்ல வடிகால் வசதியுள்ள செம்மண் அல்லது வண்டல் மண் (Deep fertile red loam, pH 6.0 - 7.5)",
+    npk: "1000g N, 500g P2O5, 1000g K2O per bearing tree per year applied after harvest",
+    irrigation: "Irrigate every 10-15 days during fruit development; stop watering 15 days before harvest.",
+    pestsAndDiseases: "Mango hopper, Fruit fly, Anthracnose, Powdery mildew, Dieback.",
+    organicRemedy: "Install Methyl Eugenol pheromone traps @ 6/acre; spray 5% neem seed kernel extract.",
+    chemicalDosage: "Imidacloprid 17.8% SL @ 0.3ml/liter for hoppers; Carbendazim 50% WP @ 1g/L for anthracnose.",
+    marketBenchmark: "Average Mandi Price: ₹3,500 - ₹7,500 per quintal (₹35 - ₹80/kg)."
+  },
+  blackgram: {
+    name: { ta: "உளுந்து", en: "Black gram / Urad", hi: "उड़द", te: "మినుములు", kn: "ಉದ್ದು", ml: "ഉഴുന്ന്" },
+    varieties: ["VBN 6", "VBN 8", "VBN 11", "ADT 5", "CO 6"],
+    sowingTime: "Kharif: June-July | Rabi: Sep-Oct | Rice Fallow: Jan-Feb",
+    soil: "வண்டல் மண் மற்றும் நல்ல வடிகால் செம்மண் (Loam to clay loam, pH 6.5 - 7.5)",
+    npk: "25:50:25 kg NPK per hectare + Rhizobium biofertilizer seed treatment",
+    irrigation: "Light irrigation at flowering (30 DAS) and pod filling (45 DAS); avoid waterlogging.",
+    pestsAndDiseases: "Yellow Mosaic Virus (YMV), Pod borer, Root rot, Powdery mildew.",
+    organicRemedy: "Seed treat with Trichoderma @ 4g/kg; spray NSKE 5%; install yellow sticky traps for whitefly.",
+    chemicalDosage: "Imidacloprid 17.8% SL @ 0.3ml/L for whitefly vector; Spinosad 45% SC @ 0.3ml/L for pod borer.",
+    marketBenchmark: "Average Mandi Price: ₹7,000 - ₹8,500 per quintal (Govt MSP: ₹7,400/q)."
+  },
+  jasmine: {
+    name: { ta: "மல்லிகை", en: "Jasmine", hi: "चमेली", te: "మల్లె", kn: "ಮಲ್ಲಿಗೆ", ml: "മുല്ല" },
+    varieties: ["Gundumalli", "Ramanathapuram Gundumalli", "CO 1", "CO 2"],
+    sowingTime: "June to November (Planting rooted cuttings at 1.25m x 1.25m)",
+    soil: "நல்ல வடிகால் வசதியுள்ள செம்மண் (Well-drained red loamy soil, pH 6.5 - 7.5)",
+    npk: "60:120:120 g NPK per bush per year in two split doses after pruning",
+    irrigation: "Irrigate twice a week during flowering season; prune water for 15 days before winter pruning.",
+    pestsAndDiseases: "Bud worm, Blossom midge, Red spider mite, Leaf blight.",
+    organicRemedy: "Spray 3% neem oil with soap nut solution; prune and burn infested buds.",
+    chemicalDosage: "Spinosad 45% SC @ 0.3ml/L for bud worm; Wettable Sulphur @ 2g/L for red spider mites.",
+    marketBenchmark: "Average Market Price: ₹350 - ₹1,200 per kg depending on season and festivals."
+  },
+  cabbage: {
+    name: { ta: "முட்டைக்கோஸ்", en: "Cabbage", hi: "पत्ता गोभी", te: "క్యాబేజీ", kn: "ಕೋಸು", ml: "കാബേജ്" },
+    varieties: ["Golden Acre", "Pride of India", "Pusa Mukta", "Quisto", "BSS 50"],
+    sowingTime: "Hills: Throughout the year | Plains: August to November",
+    soil: "நல்ல வடிகால் வசதியுள்ள மணல் கலந்த வண்டல் மண் அல்லது செம்மண் (Sandy loam to clay loam, pH 6.0 - 6.8)",
+    npk: "100:125:100 kg NPK per hectare in plains; 150:100:100 kg NPK in hills (Half N + full P & K basal)",
+    irrigation: "Irrigate immediately after transplanting, then every 5-6 days. Avoid water stagnation.",
+    pestsAndDiseases: "Diamondback moth (DBM), Aphids, Cabbage borer, Black rot (Xanthomonas).",
+    organicRemedy: "Intercrop with mustard (2:25 ratio) as trap crop; spray 5% NSKE or Bacillus thuringiensis (Bt) @ 2g/L.",
+    chemicalDosage: "Spinosad 45% SC @ 0.3ml/liter or Chlorantraniliprole 18.5% SC @ 0.3ml/L for DBM; Streptocycline 100 ppm + Copper Oxychloride @ 2.5g/L for black rot.",
+    marketBenchmark: "Average Mandi Price: ₹1,500 - ₹2,800 per quintal (₹18 - ₹32/kg)."
+  },
+  cauliflower: {
+    name: { ta: "காலிஃபிளவர் / பூக்கோஸ்", en: "Cauliflower", hi: "फूल गोभी", te: "కాలీఫ్లవర్", kn: "ಹೂಕೋಸು", ml: "കോളിഫ്ലവർ" },
+    varieties: ["Pusa Deepali", "Pusa Snowball", "Ooty 1", "White Contessa"],
+    sowingTime: "Hills: July to November | Plains: September to October",
+    soil: "வளமான, நல்ல வடிகால் வசதியுள்ள மணல் கலந்த வண்டல் மண் (Fertile sandy loam, pH 6.0 - 7.0)",
+    npk: "120:80:80 kg NPK per hectare + Borax 10 kg/ha (basal) to prevent browning",
+    irrigation: "Light irrigation every 5-7 days; maintain uniform moisture to prevent buttoning.",
+    pestsAndDiseases: "Diamondback moth, Cutworm, Browning (Boron deficiency), Downy mildew.",
+    organicRemedy: "Spray Bt @ 2g/liter; apply neem cake 250 kg/acre at field preparation.",
+    chemicalDosage: "Spinosad 45% SC @ 0.3ml/L for diamondback moth; spray Solubor (Boron) @ 1.5g/L at curd initiation.",
+    marketBenchmark: "Average Mandi Price: ₹2,000 - ₹3,600 per quintal (₹22 - ₹40/kg)."
+  },
+  millets: {
+    name: { ta: "கம்பு / கேழ்வரகு / தானியங்கள்", en: "Millets (Pearl & Finger Millet / Bajra & Ragi)", hi: "बाजरा / रागी", te: "సజ్జలు / రాగులు", kn: "ಸಜ್ಜೆ / ರಾಗಿ", ml: "കമ്പം / റാഗി" },
+    varieties: ["Kambu: CO 9, CO 10, ICMV 221", "Ragi: GPU 28, ML 365, CO 14, CO 15, Paiyur 2"],
+    sowingTime: "Kharif: June-July | Summer: January-February",
+    soil: "வடிகால் வசதியுள்ள செம்மண் மற்றும் மணற்பாங்கான நிலம் (Well-drained red sandy loam, pH 6.0 - 7.5)",
+    npk: "Ragi: 60:30:30 kg NPK/ha + 12.5 tonnes FYM; Kambu: 80:40:40 kg NPK/ha",
+    irrigation: "Rainfed crop; under irrigation, water at tillering, flowering, and grain hardening stages.",
+    pestsAndDiseases: "Ragi blast (Pyricularia), Downy mildew/Green ear (Sclerospora), Shoot fly.",
+    organicRemedy: "Pseudomonas fluorescens seed treatment @ 10g/kg; spray 3% Panchagavya at panicle emergence.",
+    chemicalDosage: "Tricyclazole 75% WP @ 0.6g/L for Ragi blast; Metalaxyl 35% WS @ 6g/kg seed for downy mildew.",
+    marketBenchmark: "Govt MSP: Ragi ₹4,290/q, Bajra/Kambu ₹2,625/q. Mandi Price: ₹2,500 - ₹4,400 per quintal."
+  },
+  wheat: {
+    name: { ta: "கோதுமை", en: "Wheat", hi: "गेहूं", te: "గోధుమ", kn: "ಗೋಧಿ", ml: "ഗോതമ്പ്" },
+    varieties: ["HD 2967", "DBW 187", "PBW 343", "COW 1 (TNAU)", "Sharbati"],
+    sowingTime: "Rabi: November 1 to November 25 (Optimal timely sowing)",
+    soil: "வளமான, நல்ல வடிகால் வசதியுள்ள வண்டல் மண் மற்றும் களிமண் (Fertile loam to clay loam, pH 6.5 - 7.5)",
+    npk: "120:60:40 kg NPK per hectare (Half N + full P & K basal; remaining N at CRI and jointing)",
+    irrigation: "Critical irrigations at Crown Root Initiation (21 DAS), Tillering (45 DAS), and Flowering (80 DAS).",
+    pestsAndDiseases: "Yellow rust (Puccinia striiformis), Brown rust, Loose smut, Aphids, Termites.",
+    organicRemedy: "Seed treatment with Trichoderma viride @ 4g/kg; spray 3% neem oil for aphids.",
+    chemicalDosage: "Propiconazole 25% EC @ 1ml/liter for rust; Carbendazim 50% WP @ 2g/kg seed for loose smut.",
+    marketBenchmark: "Government MSP: ₹2,275 - ₹2,425 per quintal. Mandi Price: ₹2,300 - ₹2,650/q."
+  },
+  greengram: {
+    name: { ta: "பாசிப்பயறு / பச்சைப்பயறு", en: "Green Gram / Moong", hi: "मूंग", te: "పెసలు", kn: "ಹೆಸರುಕಾಳು", ml: "ചെറുപയർ" },
+    varieties: ["VBN 2", "VBN 3", "CO 7", "CO 8", "Pusa Vishal"],
+    sowingTime: "Kharif: June-July | Rabi: Oct-Nov | Rice Fallow: Jan-Feb",
+    soil: "வண்டல் மண் மற்றும் நல்ல வடிகால் செம்மண் (Well-drained loam to clay loam, pH 6.5 - 7.5)",
+    npk: "25:50:25 kg NPK per hectare + Rhizobium biofertilizer seed treatment (200g/acre)",
+    irrigation: "Critical irrigations at flowering (30 DAS) and pod filling (45 DAS); avoid waterlogging.",
+    pestsAndDiseases: "Yellow Mosaic Virus (YMV), Pod borer (Helicoverpa), Powdery mildew, Aphids.",
+    organicRemedy: "Yellow sticky traps (12/acre) for whiteflies; spray 5% NSKE or 3% neem oil.",
+    chemicalDosage: "Imidacloprid 17.8% SL @ 0.3ml/L for whitefly vector; Spinosad 45% SC @ 0.3ml/L for pod borer.",
+    marketBenchmark: "Government MSP: ₹8,558 per quintal. Mandi Price: ₹7,500 - ₹9,200/q."
+  },
+  chickpea: {
+    name: { ta: "கொண்டைக்கடலை / சுண்டல்", en: "Chickpea / Bengal Gram / Chana", hi: "चना", te: "శనగలు", kn: "ಕಡಲೆ", ml: "കടല" },
+    varieties: ["CO 4", "JAKI 9218", "JG 11", "Pusa 362", "KAK 2"],
+    sowingTime: "Rabi: October to November",
+    soil: "ஆழமான, நல்ல வடிகால் வசதியுள்ள கரிசல் மண் மற்றும் வண்டல் மண் (Deep black soil / Sandy loam, pH 6.5 - 8.0)",
+    npk: "20:40:20 kg NPK per hectare + 5 tonnes FYM",
+    irrigation: "1-2 light irrigations at pre-flowering and pod development; avoid heavy flooding.",
+    pestsAndDiseases: "Fusarium wilt, Dry root rot, Gram pod borer (Helicoverpa armigera).",
+    organicRemedy: "Seed treat with Trichoderma viride @ 4g/kg; install 5 pheromone traps/acre for pod borer.",
+    chemicalDosage: "Emamectin Benzoate 5% SG @ 0.4g/L or Chlorantraniliprole 18.5% SC @ 0.3ml/L for pod borer.",
+    marketBenchmark: "Government MSP: ₹5,440 - ₹5,650 per quintal. Mandi Price: ₹5,800 - ₹6,800/q."
+  }
+};
+
+// --- 1B. OFFLINE DOMAIN KNOWLEDGE REPOSITORY ---
+export interface DomainKnowledge {
+  summary: { [lang: string]: string };
+  action: { [lang: string]: string };
+}
+
+export const OFFLINE_DOMAIN_KNOWLEDGE: Record<string, DomainKnowledge> = {
+  livestock_dairy: {
+    summary: {
+      ta: "கால்நடை பராமரிப்புக்கு பசுந்தீவனம் (Co-4, Co-5, அசோலா) மற்றும் தாது உப்பு கலவை (50 கிராம்/நாள்) வழங்குவது பால் உற்பத்தியை அதிகரிக்கும்.",
+      en: "For dairy cattle, feeding green fodder (Co-4, Co-5, Azolla) and mineral mixture (50g/day) enhances milk yield and animal health.",
+      hi: "दुधारू पशुओं के लिए हरा चारा (Co-4, अजोला) और खनिज मिश्रण (50 ग्राम/दिन) देने से दूध उत्पादन और स्वास्थ्य बढ़ता है।",
+      te: "పాడి పశువులకు పచ్చిగడ్డి (Co-4, అజోల్లా) మరియు ఖనిజ లవణాల మిశ్రమం (రోజుకు 50 గ్రాములు) అందిస్తే పాల దిగుబడి మరియు ఆరోగ్యం మెరుగుపడతాయి.",
+      kn: "ಹೈನುಗಾರಿಕೆಯಲ್ಲಿ ಹಸಿರು ಹುಲ್ಲು (Co-4, ಅಜೋಲ್ಲಾ) ಮತ್ತು ಖನಿಜ ಮಿಶ್ರಣ (ದಿನಕ್ಕೆ 50 ಗ್ರಾಂ) ನೀಡುವುದರಿಂದ ಹಾಲಿನ ಇಳುವರಿ ಮತ್ತು ಜಾನುವಾರುಗಳ ಆರೋಗ್ಯ ಹೆಚ್ಚುತ್ತದೆ.",
+      ml: "കറവപ്പശുക്കൾക്ക് പച്ചപ്പുല്ലും അസോളയും ധാതുലവണ മിശ്രിതവും (പ്രതിദിനം 50 ഗ്രാം) നൽകുന്നത് പാലുൽപ്പാദനവും ആരോഗ്യവും വർദ്ധിപ്പിക്കും."
+    },
+    action: {
+      ta: "மடிநோய் தடுக்க கறவைக்கு முன் மடியை சுத்தமாக கழுவி துடைக்கவும்; தீவிர நோய் அறிகுறிகள் இருந்தால் உடனடியாக கால்நடை மருத்துவரை அணுகவும்.",
+      en: "To prevent mastitis, wash and dry the udder cleanly before milking; for acute emergencies, consult a certified veterinarian immediately.",
+      hi: "थनैला रोग से बचाव के लिए दूध निकालने से पहले थन साफ रखें; गंभीर बीमारी होने पर तुरंत पशु चिकित्सक से संपर्क करें।",
+      te: "పొదుగు వాపు నివారణకు పాలు పితికే ముందు పొదుగును శుభ్రంగా కడగాలి; అత్యవసర అనారోగ్యానికి వెంటనే పశువైద్యుడిని సంప్రదించండి.",
+      kn: "ಕೆಚ್ಚಲು ಬಾವು ತಡೆಯಲು ಹಾಲು ಕರೆಯುವ ಮುನ್ನ ಕೆಚ್ಚಲನ್ನು ಸ್ವಚ್ಛವಾಗಿ ತೊಳೆದು ಒರೆಸಿ; ಗಂಭೀರ ಕಾಯಿಲೆಗಳಿಗೆ ತಕ್ಷಣವೇ ಪಶುವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ.",
+      ml: "അകിടുവീക്കം തടയാൻ കറവയ്ക്ക് മുൻപ് അകിട് വൃത്തിയായി കഴുകി തുടയ്ക്കുക; ഗുരുതര രോഗാവസ്ഥയിൽ ഉടൻ മൃഗഡോക്ടറുടെ സഹായം തേടുക."
+    }
+  },
+  organic_farming: {
+    summary: {
+      ta: "இயற்கை விவசாயத்தில் பஞ்சகவ்யா 3% கரைசல் (10 லிட்டர் நீரில் 300 மி.லி) தெளிப்பது பயிர் நோய் எதிர்ப்பு சக்தியை அதிகரித்து பூக்கள் உதிர்வதைத் தடுக்கும்.",
+      en: "In organic farming, spraying 3% Panchagavya (300ml in 10L water) boosts crop immunity and prevents flower drop.",
+      hi: "जैविक खेती में 3% पंचगव्य (10 लीटर पानी में 300 मिली) का छिड़काव फसल की रोग प्रतिरोधक क्षमता बढ़ाता है और फूल गिरने से रोकता है।",
+      te: "సేంద్రీయ వ్యవసాయంలో 3% పంచగవ్య (10 లీటర్ల నీటిలో 300 మి.లీ) పిచికారీ చేయడం వల్ల పంట రోగనిరోధక శక్తి పెరిగి పూత రాలడం తగ్గుతుంది.",
+      kn: "ಸಾವಯವ ಕೃಷಿಯಲ್ಲಿ 3% ಪಂಚಗವ್ಯ (10 ಲೀಟರ್ ನೀರಿಗೆ 300 ಮಿ.ಲೀ) ಸಿಂಪಡಿಸುವುದರಿಂದ ಬೆಳೆಯ ರೋಗನಿರೋಧಕ ಶಕ್ತಿ ಹೆಚ್ಚಿ ಹೂವು ಉದುರುವುದು ಕಡಿಮೆಯಾಗುತ್ತದೆ.",
+      ml: "ജൈവകൃഷിയിൽ 3% പഞ്ചഗവ്യം (10 ലിറ്റർ വെള്ളത്തിൽ 300 മില്ലി) തളിക്കുന്നത് വിളയുടെ രോഗപ്രതിരോധശേഷി കൂട്ടുകയും പൂ കൊഴിച്ചിൽ തടയുകയും ചെയ്യും."
+    },
+    action: {
+      ta: "மண்புழு உரம் ஏக்கருக்கு 2 டன் இடவும்; பூச்சி தாக்குதலுக்கு 5% வேப்பங்கொட்டை கரைசல் (NSKE) தெளிக்கவும்.",
+      en: "Apply 2 tonnes vermicompost per acre; spray 5% Neem Seed Kernel Extract (NSKE) for pest control.",
+      hi: "प्रति एकड़ 2 टन वर्मीकम्पोस्ट डालें; कीट नियंत्रण के लिए 5% नीम बीज अर्क (NSKE) का छिड़काव करें।",
+      te: "ఎకరాకు 2 టన్నుల వర్మీకంపోస్ట్ వేయండి; కీటకాల నివారణకు 5% వేప గింజల కషాయం పిచికారీ చేయండి.",
+      kn: "ಪ್ರತಿ ಎಕರೆಗೆ 2 ಟನ್ ಎರೆಹುಳು ಗೊಬ್ಬರ ಹಾಕಿ; ಕೀಟ ನಿಯಂತ್ರಣಕ್ಕೆ 5% ಬೇವಿನ ಬೀಜದ ಕಷಾಯ (NSKE) ಸಿಂಪಡಿಸಿ.",
+      ml: "ഏക്കറിന് 2 ടൺ മണ്ണിര വളം ചേർക്കുക; കീടനിയന്ത്രണത്തിന് 5% വേപ്പെണ്ണ മിശ്രിതം തളിക്കുക."
+    }
+  },
+  soil_testing: {
+    summary: {
+      ta: "மண் பரிசோதனைக்கு நிலத்தில் 8 முதல் 10 இடங்களில் ஆங்கில எழுத்து 'V' வடிவில் 15 செ.மீ ஆழத்தில் மண் சேகரித்து, நிழலில் உலர்த்தி 500 கிராம் மாதிரி எடுக்கவும்.",
+      en: "For soil testing, collect V-shaped soil samples from 8-10 points at 15cm depth, shade dry, and take a 500g composite sample.",
+      hi: "मिट्टी परीक्षण के लिए खेत में 8-10 स्थानों से वी-आकार में 15 सेमी गहराई से मिट्टी एकत्र करें और 500 ग्राम सूखा नमूना तैयार करें।",
+      te: "నేల పరీక్ష కోసం పొలంలో 8 నుండి 10 చోట్ల 'V' ఆకారంలో 15 సెం.మీ లోతులో మట్టి సేకరించి, నీడలో ఆరబెట్టి 500 గ్రాముల నమూనా తయారుచేయండి.",
+      kn: "ಮಣ್ಣು ಪರೀಕ್ಷೆಗಾಗಿ ಜಮೀನಿನಲ್ಲಿ 8 ರಿಂದ 10 ಕಡೆ 'V' ಆಕಾರದಲ್ಲಿ 15 ಸೆಂ.ಮೀ ಆಳದಲ್ಲಿ ಮಣ್ಣು ಸಂಗ್ರಹಿಸಿ, ನೆರಳಿನಲ್ಲಿ ಒಣಗಿಸಿ 500 ಗ್ರಾಂ ಮಾದರಿ ಸಿದ್ಧಪಡಿಸಿ.",
+      ml: "മണ്ണ് പരിശോധനയ്ക്കായി പാടത്ത് 8 മുതൽ 10 ഇടങ്ങളിൽ 'V' ആകൃതിയിൽ 15 സെ.മീ ആഴത്തിൽ മണ്ണെടുത്ത് തണലിലുണക്കി 500 ഗ്രാം സാമ്പിൾ എടുക്കുക."
+    },
+    action: {
+      ta: "மண் மாதிரியை வட்டார வேளாண் விரிவாக்க மையத்தில் (உழவர் மையம்) சமர்ப்பித்து NPK, pH மற்றும் சத்துக்கள் அட்டையை பெறவும்.",
+      en: "Submit the soil sample to the nearest Block Agriculture Extension Centre to obtain the Soil Health Card with NPK and pH values.",
+      hi: "निकटतम कृषि विस्तार केंद्र में नमूना जमा करके मृदा स्वास्थ्य कार्ड (NPK और pH मान) प्राप्त करें।",
+      te: "మట్టి నమూనాను సమీప రైతు సేవా కేంద్రంలో ఇచ్చి నేల ఆరోగ్య కార్డు (NPK, pH విలువలు) పొందండి.",
+      kn: "ಮಣ್ಣಿನ ಮಾದರಿಯನ್ನು ಹತ್ತಿರದ ರೈತ ಸಂಪರ್ಕ ಕೇಂದ್ರಕ್ಕೆ ಸಲ್ಲಿಸಿ ಮಣ್ಣು ಆರೋಗ್ಯ ಕಾರ್ಡ್ (NPK, pH ಮೌಲ್ಯಗಳು) ಪಡೆಯಿರಿ.",
+      ml: "മണ്ണ് സാമ്പിൾ അടുത്തുള്ള കൃഷിഭവനിൽ നൽകി മണ്ണ് ആരോഗ്യ കാർഡ് (NPK, pH മൂല്യങ്ങൾ) നേടുക."
+    }
+  },
+  seed_treatment: {
+    summary: {
+      ta: "விதை நேர்த்திக்கு டிரைக்கோடெர்மா விரிடி (4 கிராம்/கிலோ) அல்லது சூடோமோனாஸ் (10 கிராம்/கிலோ) பயன்படுத்துவது வேரழுகல் மற்றும் நாற்றுக்கருகல் நோய்களை தடுக்கும்.",
+      en: "Seed treatment with Trichoderma viride @ 4g/kg or Pseudomonas @ 10g/kg prevents damping-off and soil-borne fungal diseases.",
+      hi: "ट्राइकोडर्मा (4 ग्राम/किग्रा) या स्यूडोमोनास (10 ग्राम/किग्रा) से बीज उपचार करने से जड़ सड़न और फफूंद जनित रोगों से बचाव होता है।",
+      te: "ట్రైకోడెర్మా విరిడే (4 గ్రా/కిలో) లేదా సూడోమోనాస్ (10 గ్రా/కిలో)తో విత్తన శుద్ధి చేస్తే వేరు కుళ్లు మరియు నారు తెగుళ్లు నివారించబడతాయి.",
+      kn: "ಟ್ರೈಕೋಡರ್ಮಾ (4 ಗ್ರಾಂ/ಕೆಜಿ) ಅಥವಾ ಸೂಡೋಮೊನಾಸ್ (10 ಗ್ರಾಂ/ಕೆಜಿ) ಯೊಂದಿಗೆ ಬೀಜೋಪಚಾರ ಮಾಡುವುದರಿಂದ ಬೇರು ಕೊಳೆ ಮತ್ತು ಶಿಲೀಂಧ್ರ ರೋಗಗಳು ತಡೆಯಲ್ಪಡುತ್ತವೆ.",
+      ml: "ട്രൈക്കോഡെർമ (4 ഗ്രാം/കിലോ) അല്ലെങ്കിൽ സ്യൂഡോമോണസ് (10 ഗ്രാം/കിലോ) ഉപയോഗിച്ച് വിത്തുചികിത്സ ചെയ്യുന്നത് വേരുചീയലും കുമിൾ രോഗങ്ങളും തടയും."
+    },
+    action: {
+      ta: "தழைச்சத்து கிடைக்க அசோஸ்பைரில்லம் மற்றும் பாஸ்போபாக்டீரியா தலா 200 கிராம்/ஏக்கர் விதை நேர்த்தி செய்து நிழலில் உலர்த்தி விதைக்கவும்.",
+      en: "Coat seeds with Azospirillum and Phosphobacteria (200g each per acre) to enhance biological nitrogen and phosphorus uptake.",
+      hi: "जैविक नाइट्रोजन और फास्फोरस के लिए एजोस्पिरिलम और फॉस्फोबैक्टीरिया से बीज उपचारित करके छाया में सुखाएं।",
+      te: "నత్రజని మరియు భాస్వరం లభ్యత కోసం అజోస్పైరిల్లమ్ మరియు ఫాస్ఫోబాక్టీరియాతో విత్తన శుద్ధి చేసి నీడలో ఆరబెట్టి విత్తండి.",
+      kn: "ಸಾರಜನಕ ಮತ್ತು ರಂಜಕದ ಲಭ್ಯತೆಗಾಗಿ ಅಜೋಸ್ಪೈರಿಲಮ್ ಮತ್ತು ಫಾಸ್ಫೋಬ್ಯಾಕ್ಟೀರಿಯಾದೊಂದಿಗೆ ಬೀಜೋಪಚಾರ ಮಾಡಿ ನೆರಳಿನಲ್ಲಿ ಒಣಗಿಸಿ ಬಿತ್ತನೆ ಮಾಡಿ.",
+      ml: "നൈട്രജനും ഫോസ്ഫറസും ലഭ്യമാക്കാൻ അസോസ്പൈറില്ലം, ഫോസ്ഫോബാക്ടീരിയ എന്നിവ ചേർത്ത് വിത്തുചികിത്സ നടത്തി തണലിലുണക്കി വിതയ്ക്കുക."
+    }
+  },
+  post_harvest: {
+    summary: {
+      ta: "தானிய சேமிப்புக்கு ஈரப்பதம் 10-12% கீழ் குறையும் வரை நன்கு காயவைக்க வேண்டும்; ஈரப்பதத்துடன் சேமித்தால் பூஞ்சை மற்றும் வண்டுகள் தாக்கும்.",
+      en: "For safe grain storage, dry produce until moisture drops below 10-12% to prevent fungal spoilage and weevil attack.",
+      hi: "अनाज भंडारण के लिए नमी 10-12% से कम होने तक सुखाएं, ताकि फफूंद और कीटों से सुरक्षा रहे।",
+      te: "ధాన్యాల భద్రమైన నిల్వ కోసం తేమ 10-12% కంటే తక్కువగా ఉండేలా బాగా ఆరబెట్టాలి; తేమ ఉంటే బూజు మరియు పురుగులు పడతాయి.",
+      kn: "ಧಾನ್ಯಗಳ ಸುರಕ್ಷಿತ ಸಂಗ್ರಹಣೆಗೆ ತೇವಾಂಶ 10-12% ಕ್ಕಿಂತ ಕಡಿಮೆಯಾಗುವವರೆಗೆ ಚೆನ್ನಾಗಿ ಒಣಗಿಸಿ; ತೇವಾಂಶವಿದ್ದರೆ ಶಿಲೀಂಧ್ರ ಮತ್ತು ಕೀಟಗಳು ಆವರಿಸುತ್ತವೆ.",
+      ml: "ധാന്യങ്ങൾ സൂക്ഷിക്കാൻ ഈർപ്പം 10-12 ശതമാനത്തിൽ താഴെയാകുന്നതുവരെ ഉണക്കണം; ഈർപ്പമുണ്ടെങ്കിൽ പൂപ്പലും കീടങ്ങളും ബാധിക്കും."
+    },
+    action: {
+      ta: "சாக்குப்பைகளில் உலர்ந்த வேப்பிலை கலந்து காற்றுப்புகா சூப்பர்கிரைன் பைகளில் (Hermetic bags) சேமிக்கவும்.",
+      en: "Mix dry neem leaves in bags and use airtight Hermetic storage bags for pest-free long shelf life.",
+      hi: "बोरियों में सूखी नीम की पत्तियां मिलाएं और एयरटाइट बैग का उपयोग करके लंबे समय तक सुरक्षित रखें।",
+      te: "గోనె సంచులలో ఎండిన వేపాకులు కలిపి గాలి చొరబడని హెర్మెటిక్ సంచులలో నిల్వ ఉంచండి.",
+      kn: "ಚೀಲಗಳಲ್ಲಿ ಒಣಗಿದ ಬೇವಿನ ಎಲೆಗಳನ್ನು ಬೆರೆಸಿ ಗಾಳಿಯಾಡದ ಚೀಲಗಳಲ್ಲಿ ದೀರ್ಘಕಾಲದವರೆಗೆ ಸುರಕ್ಷಿತವಾಗಿ ಸಂಗ್ರಹಿಸಿ.",
+      ml: "ചാക്കുകളിൽ ഉണങ്ങിയ വേപ്പില ചേർത്ത് വായു കടക്കാത്ത സഞ്ചികളിൽ സുരക്ഷിതമായി സൂക്ഷിക്കുക."
+    }
+  },
+  government_schemes: {
+    summary: {
+      ta: "முக்கிய அரசு திட்டங்கள்: பிஎம்-கிசான் (ஆண்டுக்கு ₹6,000 நிதியுதவி), பிரதம மந்திரி பயிர் காப்பீட்டுத் திட்டம் (PMFBY), மற்றும் கலைஞரின் அனைத்து கிராம வேளாண் திட்டம்.",
+      en: "Key government schemes: PM-KISAN (₹6,000/year income support), PM Fasal Bima Yojana crop insurance, and Kalaignar All Village Agri Scheme.",
+      hi: "प्रमुख सरकारी योजनाएं: पीएम-किसान (₹6,000 वार्षिक सहायता), पीएम फसल बीमा योजना और सब्सिडी वाली ड्रिप सिंचाई।",
+      te: "ప్రధాన ప్రభుత్వ పథకాలు: పిఎం-కిసాన్ (ఏడాదికి ₹6,000 ఆదాయ సహాయం), ప్రధానమంత్రి ఫసల్ బీమా యోజన (పంట బీమా) మరియు బిందు సేద్యం రాయితీ.",
+      kn: "ಪ್ರಮುಖ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು: ಪಿಎಂ-ಕಿಸಾನ್ (ವಾರ್ಷಿಕ ₹6,000 ಧನಸಹಾಯ), ಪ್ರಧಾನಮಂತ್ರಿ ಫಸಲ್ ಬಿಮಾ ಯೋಜನೆ (ಬೆಳೆ ವಿಮೆ) ಮತ್ತು ಹನಿ ನೀರಾವರಿ ಸಹಾಯಧನ.",
+      ml: "പ്രധാന സർക്കാർ പദ്ധതികൾ: പിഎം-കിസാൻ (വർഷം ₹6,000 വരുമാന സഹായം), പ്രധാൻ മന്ത്രി ഫസൽ ബീമ യോജന (വിള ഇൻഷുറൻസ്), തുള്ളിനന സബ്‌സിഡി."
+    },
+    action: {
+      ta: "விவசாயிகள் பட்டா, ஆதார் மற்றும் வங்கி கணக்கு புத்தகத்துடன் உழவன் செயலி அல்லது அருகிலுள்ள வேளாண் விரிவாக்க மையத்தில் விண்ணப்பிக்கலாம்.",
+      en: "Apply via the Uzhavan App or Block Agriculture Centre with land patta, Aadhaar, and bank passbook.",
+      hi: "भूमि दस्तावेज, आधार और बैंक पासबुक के साथ निकटतम कृषि कार्यालय या उझावन ऐप पर आवेदन करें।",
+      te: "భూమి పట్టా, ఆధార్ మరియు బ్యాంక్ పాస్‌బుక్‌తో సమీప రైతు సేవా కేంద్రంలో లేదా వ్యవసాయ పోర్టల్‌లో దరఖాస్తు చేసుకోండి.",
+      kn: "ಜಮೀನಿನ ಪಹಣಿ, ಆಧಾರ್ ಮತ್ತು ಬ್ಯಾಂಕ್ ಪಾಸ್‌ಬುಕ್‌ನೊಂದಿಗೆ ಹತ್ತಿರದ ಕೃಷಿ ಕೇಂದ್ರದಲ್ಲಿ ಅಥವಾ ಕೃಷಿ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ಅರ್ಜಿ ಸಲ್ಲಿಸಿ.",
+      ml: "ഭൂമിയുടെ രേഖകൾ, ആധാർ, ബാങ്ക് പാസ്ബുക്ക് എന്നിവ സഹിതം അടുത്തുള്ള കൃഷിഭവനിലോ ഓൺലൈൻ പോർട്ടലിലോ അപേക്ഷിക്കുക."
+    }
+  },
+  institutions_helplines: {
+    summary: {
+      ta: "விவசாயிகள் சந்தேகங்களுக்கு மத்திய அரசின் இலவச கிசான் கால் சென்டர் 1800-180-1551 என்ற எண்ணில் காலை 6 முதல் இரவு 10 மணி வரை தமிழில் பேசலாம்.",
+      en: "For agricultural advisory, call the Kisan Call Centre toll-free helpline 1800-180-1551 (6 AM - 10 PM in Tamil and Indian languages).",
+      hi: "कृषि सहायता के लिए निःशुल्क किसान कॉल सेंटर 1800-180-1551 पर सुबह 6 से रात 10 बजे तक अपनी भाषा में संपर्क करें।",
+      te: "వ్యవసాయ సలహాల కోసం ఉచిత కిసాన్ కాల్ సెంటర్ 1800-180-1551 నంబరుకు ఉదయం 6 నుండి రాత్రి 10 వరకు తెలుగులో కాల్ చేయవచ్చు.",
+      kn: "ಕೃಷಿ ಸಲಹೆಗಳಿಗಾಗಿ ಉಚಿತ ಕಿಸಾನ್ ಕಾಲ್ ಸೆಂಟರ್ 1800-180-1551 ಸಂಖ್ಯೆಗೆ ಬೆಳಿಗ್ಗೆ 6 ರಿಂದ ರಾತ್ರಿ 10 ರವರೆಗೆ ಕನ್ನಡದಲ್ಲಿ ಕರೆ ಮಾಡಬಹುದು.",
+      ml: "കാർഷിക സംശയങ്ങൾക്ക് സൗജന്യ കിസാൻ കോൾ സെന്റർ 1800-180-1551 എന്ന നമ്പറിലേക്ക് രാവിലെ 6 മുതൽ രാത്രി 10 വരെ വിളിക്കാം."
+    },
+    action: {
+      ta: "தமிழ்நாடு வேளாண்மைப் பல்கலைக்கழகம் (TNAU) அல்லது உங்கள் வட்டார வேளாண்மை அலுவலரை (AAO) நேரிலும் தொடர்பு கொள்ளலாம்.",
+      en: "You can also contact Tamil Nadu Agricultural University (TNAU) or your local Block Assistant Agricultural Officer (AAO).",
+      hi: "आप स्थानीय कृषि विज्ञान केंद्र (KVK) या कृषि अधिकारी से भी संपर्क कर सकते हैं।",
+      te: "మీరు స్థానిక వ్యవసాయ విశ్వవిద్యాలయం లేదా మండల వ్యవసాయ అధికారిని (AO) కూడా సంప్రదించవచ్చు.",
+      kn: "ನೀವು ಸ್ಥಳೀಯ ಕೃಷಿ ವಿಶ್ವವಿದ್ಯಾಲಯ ಅಥವಾ ತಾಲೂಕು ಕೃಷಿ ಅಧಿಕಾರಿಯನ್ನು ಸಹ ನೇರವಾಗಿ ಸಂಪರ್ಕಿಸಬಹುದು.",
+      ml: "നിങ്ങൾക്ക് പ്രാദേശിക കാർഷിക സർവകലാശാലയെയോ കൃഷി ഓഫീസറെയോ നേരിട്ടും ബന്ധപ്പെടാവുന്നതാണ്."
+    }
+  },
+  farmer_business: {
+    summary: {
+      ta: "விவசாயிகள் விளைபொருட்களுக்கு நியாயமான விலை பெற உழவர் சந்தை (இடைத்தரகர் இன்றி நேரடி விற்பனை) மற்றும் தேசிய இ-நாம் (e-NAM) சந்தை பயன்படுத்தலாம்.",
+      en: "To secure fair prices, sell produce directly at Uzhavan Santhai (zero intermediary fee) or through the e-NAM national electronic trading portal.",
+      hi: "उचित मूल्य प्राप्त करने के लिए किसान सीधे किसान मंडी (बिना बिचौलियों के) या राष्ट्रीय ई-नाम (e-NAM) पोर्टल पर बेच सकते हैं।",
+      te: "గిట్టుబాటు ధర కోసం రైతులు నేరుగా రైతు బజార్ (మధ్యవర్తులు లేకుండా) లేదా జాతీయ ఇ-నామ్ (e-NAM) పోర్టల్‌లో పంటను విక్రయించవచ్చు.",
+      kn: "ಯೋಗ್ಯ ಬೆಲೆ ಪಡೆಯಲು ರೈತರು ನೇರವಾಗಿ ರೈತ ಮಾರುಕಟ್ಟೆ (ರೈತ ಸಂತೆ) ಅಥವಾ ರಾಷ್ಟ್ರೀಯ ಇ-ನಾಮ್ (e-NAM) ಪೋರ್ಟಲ್ ಮೂಲಕ ಮಾರಾಟ ಮಾಡಬಹುದು.",
+      ml: "ഉചിതമായ വില ലഭിക്കാൻ കർഷകർക്ക് നേരിട്ട് കർഷക വിപണിയിലോ ദേശീയ ഇ-നാം (e-NAM) പോർട്ടൽ വഴിയോ ഉൽപ്പന്നങ്ങൾ വിൽക്കാം."
+    },
+    action: {
+      ta: "நெல் மற்றும் தானியங்களை அரசு நேரடி கொள்முதல் நிலையங்களில் (DPC) குறைந்தபட்ச ஆதரவு விலையில் (MSP) விற்கலாம்.",
+      en: "Paddy and pulses can be sold directly at Government Direct Purchase Centres (DPC) at Minimum Support Price (MSP).",
+      hi: "धान और दलहन को सरकारी खरीद केंद्रों (DPC) पर न्यूनतम समर्थन मूल्य (MSP) पर बेचा जा सकता है।",
+      te: "వరి మరియు పప్పుధాన్యాలను ప్రభుత్వ కొనుగోలు కేంద్రాలలో కనీస మద్దతు ధరకు (MSP) విక్రయించవచ్చు.",
+      kn: "ಭತ್ತ ಮತ್ತು ಧಾನ್ಯಗಳನ್ನು ಸರ್ಕಾರದ ನೇರ ಖರೀದಿ ಕೇಂದ್ರಗಳಲ್ಲಿ ಕನಿಷ್ಠ ಬೆಂಬಲ ಬೆಲೆಗೆ (MSP) ಮಾರಾಟ ಮಾಡಬಹುದು.",
+      ml: "നെല്ലും മറ്റ് ധാന്യങ്ങളും സർക്കാർ സംഭരണ കേന്ദ്രങ്ങളിൽ താങ്ങുവിലയ്ക്ക് (MSP) വിൽക്കാവുന്നതാണ്."
+    }
   }
 };
 
@@ -209,20 +483,30 @@ export interface ContextEnrichmentOffline {
  */
 function identifyCropKey(text: string, defaultCrop?: string): string {
   const t = text.toLowerCase();
-  if (/நெல்|அரிசி|paddy|rice|dhan/i.test(t)) return "paddy";
-  if (/தக்காளி|tomato|tamatar/i.test(t)) return "tomato";
-  if (/வெங்காயம்|onion|pyaz/i.test(t)) return "onion";
-  if (/கேரட்|carrot|gajar/i.test(t)) return "carrot";
-  if (/பருத்தி|cotton|kapas/i.test(t)) return "cotton";
-  if (/மிளகாய்|chilli|chili|mirch/i.test(t)) return "chilli";
-  if (/வாழை|banana|kela/i.test(t)) return "banana";
-  if (/உருளை|potato|aalu/i.test(t)) return "potato";
-  if (/மக்காச்சோளம்|maize|corn|makka/i.test(t)) return "maize";
-  if (/கரும்பு|sugarcane|ganna/i.test(t)) return "sugarcane";
-  if (/கத்தரி|brinjal|eggplant|baingan/i.test(t)) return "brinjal";
-  if (/வெண்டை|okra|bhindi/i.test(t)) return "okra";
-  if (/கடலை|நிலக்கடலை|groundnut|peanut|mungfali/i.test(t)) return "groundnut";
-  if (/மஞ்சள்|turmeric|haldi/i.test(t)) return "turmeric";
+  if (/முட்டைக்கோஸ்|முட்டை கோஸ்|கோஸ்|cabbage|patta gobhi|पत्ता गोभी|క్యాబేజీ|ಕೋಸು|കാബേജ്/i.test(t)) return "cabbage";
+  if (/காலிஃபிளவர்|பூக்கோஸ்|cauliflower|phool gobhi|फूल गोभी|కాలీఫ్లవర్|ಹೂಕೋಸು|കോളിഫ്ലവർ/i.test(t)) return "cauliflower";
+  if (/கம்பு|கேழ்வரகு|திணை|சாமை|குதிரைவாலி|வரகு|ராகி|bajra|ragi|millet|pearl millet|finger millet|बाजरा|रागी|సజ్జలు|రాగులు|ಸಜ್ಜೆ|ರಾಗಿ/i.test(t)) return "millets";
+  if (/கோதுமை|wheat|gehu|गेहूं|గోధుమ|ಗೋಧಿ|ಗೋതമ്പ്/i.test(t)) return "wheat";
+  if (/பாசிப்பயறு|பச்சைப்பயறு|greengram|green gram|moong|मूंग|పెసలు|ചെറുപയർ/i.test(t)) return "greengram";
+  if (/கொண்டைக்கடலை|சுண்டல்|சென்னா|chickpea|bengal gram|chana|चना|శనగలు|ಕಡಲೆ|കടല/i.test(t)) return "chickpea";
+  if (/தென்னை|தேங்காய்|coconut|nariyal|కొబ్బరి|ತೆಂಗು|തെങ്ങ്/i.test(t)) return "coconut";
+  if (/மாங்காய்|மாம்பழம்|மாமரம்|mango|aam|आम|మామిడి|ಮಾವು|മാങ്ങ/i.test(t)) return "mango";
+  if (/உளுந்து|பயறு|blackgram|urad|उड़द|మినుములు|ಉದ್ದು|ഉഴുന്ന്/i.test(t)) return "blackgram";
+  if (/மல்லிகை|மல்லி|குண்டுமல்லி|jasmine|chameli|चमेली|మల్లె|ಮಲ್ಲಿಗೆ|മുല്ല/i.test(t)) return "jasmine";
+  if (/நெல்|அரிசி|நெல்லு|paddy|rice|dhan|धान|వరి|ಭತ್ತ|നെല്ല്/i.test(t)) return "paddy";
+  if (/தக்காளி|tomato|tamatar|टमाटर|టమోటా|ಟೊಮೆಟೊ|തക്കാളി/i.test(t)) return "tomato";
+  if (/வெங்காயம்|onion|pyaz|प्याज|ఉల్లిపాయ|ಈರುಳ್ಳಿ|ഉള്ളി/i.test(t)) return "onion";
+  if (/கேரட்|carrot|gajar|गाजर|క్యారెట్|ಕ್ಯಾರೆಟ್|കാരറ്റ്/i.test(t)) return "carrot";
+  if (/பருத்தி|cotton|kapas|कपास|పత్తి|ಹತ್ತಿ|പരുത്തി/i.test(t)) return "cotton";
+  if (/மிளகாய்|chilli|chili|mirch|मिर्च|మిరప|ಮೆಣಸಿನಕಾಯಿ|മുളക്/i.test(t)) return "chilli";
+  if (/வாழை|வாழைப்பழம்|banana|kela|केला|అరటి|ಬಾಳೆ|വാഴ/i.test(t)) return "banana";
+  if (/உருளை|உருளைக்கிழங்கு|potato|aalu|aloo|आलू|బంగాళాదుంప|ಆಲೂಗಡ್ಡೆ|ഉരുളക്കിഴങ്ങ്/i.test(t)) return "potato";
+  if (/மக்காச்சோளம்|மக்கா சோளம்|மக்காச்சோள|மக்கா சோள|மக்கச்சோளம்|சோளப்பயிர்|சோளம்|சோளத்|maize|corn|makka|bhutta|मक्का|भुट्टा|మొక్కజొన్న|ಮೆಕ್ಕೆಜೋಳ|ചോളം/i.test(t)) return "maize";
+  if (/கரும்பு|sugarcane|ganna|गन्ना|చెరకు|ಕಬ್ಬು|കരിമ്പ്/i.test(t)) return "sugarcane";
+  if (/கத்தரி|கத்திரி|கத்தரிக்காய்|brinjal|eggplant|baingan|बैंगन|వంకాయ|ಬದನೆಕಾಯಿ|വഴുതന/i.test(t)) return "brinjal";
+  if (/வெண்டை|வெண்டைக்காய்|வெண்டக்காய்|okra|bhindi|भिंडी|ladyfinger|ladies finger|బెండకాయ|ಬೆಂಡೇಕಾಯಿ|വെണ്ടയ്ക്ക/i.test(t)) return "okra";
+  if (/கடலை|நிலக்கடலை|வேர்க்கடலை|மணிலா|groundnut|peanut|mungfali|मूंगफली|వేరుశెనగ|ಕಡಲೆಕಾಯಿ|നിലക്കடല/i.test(t)) return "groundnut";
+  if (/மஞ்சள்|turmeric|haldi|हल्दी|పసుపు|ಅರಿಶಿನ|മഞ്ഞൾ/i.test(t)) return "turmeric";
 
   if (defaultCrop) {
     const dc = defaultCrop.toLowerCase();
@@ -267,28 +551,58 @@ export const getOfflineAgriculturalResponse = (
     return `Your name is ${name}. You are registered as a farmer growing ${cropName} in ${dist}.`;
   }
 
-  // ── INTENT 2: SOIL REQUIREMENTS (மண் / SOIL / MITTI / నేల / ಮಣ್ಣು / മണ്ണ്) ──
-  if (/மண்|soil|மணல்|கரிசல்|வண்டல்|செம்மண்|நிலம்|mitti|నేల|మట్టి|ಮಣ್ಣು|മണ്ണ്/i.test(q)) {
-    if (isTa) return `${cropName} சாகுபடிக்கு உகந்த மண்: ${crop.soil}. நல்ல வடிகால் வசதி உறுதி செய்வது வேர் அழுகலைத் தடுக்கும்.`;
-    if (isHi) return `${cropName} के लिए सर्वोत्तम मिट्टी: ${crop.soil}। जल निकासी का उचित प्रबंध करें।`;
-    if (isTe) return `${cropName} సాగుకు అనువైన నేల: ${crop.soil}. మంచి నీటి పారుదల వేరు కుళ్లును నివారిస్తుంది.`;
-    if (isKn) return `${cropName} ಬೆಳೆಗೆ ಸೂಕ್ತವಾದ ಮಣ್ಣು: ${crop.soil}. ಉತ್ತಮ ಒಳಚರಂಡಿ ಬೇರು ಕೊಳೆಯುವಿಕೆಯನ್ನು ತಡೆಯುತ್ತದೆ.`;
-    if (isMl) return `${cropName} കൃഷിക്ക് അനുയോജ്യമായ മണ്ണ്: ${crop.soil}. നല്ല നീർവാർച്ച വേരുചീയൽ തടയും.`;
-    return `Optimal soil for ${crop.name.en}: ${crop.soil}. Good drainage is essential to avoid root rot.`;
+  // ── INTENT: SOIL TESTING (மண் பரிசோதனை / SOIL TEST / மண் ஆய்வு) ──
+  if (/மண் பரிசோதனை|soil test|மண் ஆய்வு|soil health|மாதிரி எடுக்க|மாதிரி சேகரிக்க|నేల పరీక్ష|మట్టి పరీక్ష|ಮಣ್ಣು ಪರೀಕ್ಷೆ|മണ്ണ് പരിശോധന/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.soil_testing;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
   }
 
-  // ── INTENT 3: FERTILIZER SCHEDULE & DOSAGE (உரம் / DAP / NPK / UREA / ఎరువు / ಗೊಬ್ಬರ / വളം) ──
-  if (/உரம்|dap|npk|யூரியா|பொட்டாஷ்|fertilizer|khad|manure|ఎరువు|యూరియా|ಗೊಬ್ಬರ|ಯೂರಿಯಾ|വളം|യൂറിയ/i.test(q)) {
+  // ── INTENT: FERTILIZER SCHEDULE & DOSAGE (Prioritized over Soil) ──
+  if (/உரம்|dap|npk|யூரியா|பொட்டாஷ்|fertilizer|khad|manure|எరువు|యూరియా|ಗೊಬ್ಬರ|ಯೂರಿಯಾ|വളം|യൂറിയ|சாம்பல் சத்து|தழைச்சத்து|மணிச்சத்து|தொழுவுரம்|கம்போஸ்ட்|micronutrient|நுண்ணூட்டம்|உர நிர்வாகம்/i.test(q)) {
     if (isTa) return `${cropName} பயிருக்கான பரிந்துரைக்கப்பட்ட உர அளவு: ${crop.npk}. உரம் இட்டவுடன் மிதமான நீர்ப்பாசனம் செய்யவும்.`;
     if (isHi) return `${cropName} के लिए अनुशंसित खाद मात्रा: ${crop.npk}। खाद देने के बाद हल्की सिंचाई करें।`;
     if (isTe) return `${cropName} పంటకు సిఫార్సు చేసిన ఎరువుల మోతాదు: ${crop.npk}. ఎరువు వేసిన తర్వాత తేలికపాటి నీటిపారుదల చేయండి.`;
     if (isKn) return `${cropName} ಬೆಳೆಗೆ ಶಿಫಾರಸು ಮಾಡಿದ ರಸಗೊಬ್ಬರ ಪ್ರಮಾಣ: ${crop.npk}. ಗೊಬ್ಬರ ಹಾಕಿದ ನಂತರ ಲಘು ನೀರಾವರಿ ಮಾಡಿ.`;
-    if (isMl) return `${cropName} കൃഷിക്ക് ശുപാർശ ചെയ്യുന്ന വളപ്രയോഗം: ${crop.npk}. വളം ഇട്ടതിനു ശേഷം നേരിയ നനവ് നൽകുക.`;
+    if (isMl) return `${cropName} കൃഷിക്ക് ശുപാർശ ചെയ്യുന്ന വളപ്രയോഗം: ${crop.npk}. വളം ഇட்டതിനു ശേഷം നേരിയ நனവ് നൽകുക.`;
     return `Recommended fertilizer schedule for ${crop.name.en}: ${crop.npk}. Apply moderate irrigation after application.`;
   }
 
-  // ── INTENT 4: PESTS, DISEASES & REMEDIES (நோய் / பூச்சி / PEST / DISEASE / மருந்து / తెగులు / ರೋಗ / രോഗം) ──
-  if (/நோய்|பூச்சி|புழு|கருகல்|வாடல்|அழுகல்|சுருட்டை|மருந்து|disease|pest|blight|rot|wilt|curl|fungus|spray|తెగులు|పురుగు|ರೋಗ|ಕೀಟ|രോഗം|കീടം/i.test(q)) {
+  // ── INTENT: POST-HARVEST GRAIN STORAGE (Prioritized over Disease) ──
+  if (/தானிய சேமிப்பு|சேமிப்பு|தானியங்களை|தானியம்|cold storage|shelf life|குளிர்பதன|மூட்டை|ஈரப்பதம்|வண்டு வராமல்|storage|godown|ధాన్యాల నిల్వ|ಧಾನ್ಯ ಸಂಗ್ರಹ|ധാന്യ സംഭരണം/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.post_harvest;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: WEED MANAGEMENT (களை / WEEDS) ──
+  if (/களை\b|களைகள்|களைக்கொல்லி|களை மேலாண்மை|weed\b|weeds\b|herbicide/i.test(q)) {
+    if (isTa) return `${cropName} பயிரில் விதைத்த 20 மற்றும் 40 ஆம் நாளில் கைக்களை எடுக்கவும் அல்லது தகுந்த களைக்கொல்லியை ஈரப்பதமான மண்ணில் தெளிக்கவும்.`;
+    if (isHi) return `${cropName} में बुवाई के 20 और 40 दिन बाद निराई करें या खेत में नमी होने पर अनुशंसित खरपतवारनाशी का छिड़काव करें।`;
+    return `For ${crop.name.en}, carry out hand weeding at 20 and 40 days after sowing or spray recommended herbicide under adequate soil moisture.`;
+  }
+
+  // ── INTENT: SEED TREATMENT (விதை நேர்த்தி / SEED TREATMENT) ──
+  if (/விதை நேர்த்தி|seed treatment|விதை சிகிச்சை|டிரைக்கோடெர்மா|విత్తన శుద్ధి|ಬೀಜೋಪಚಾರ|വിത്തുചികിത്സ/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.seed_treatment;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: PESTS, DISEASES & REMEDIES (நோய் / பூச்சி / PEST / DISEASE) ──
+  if (/நோய்|பூச்சி|புழு|கருகல்|வாடல்|அழுகல்|சுருட்டை|மருந்து|disease|pest|blight|rot|wilt|curl|fungus|spray|தெகுலு|పురుగు|ರೋಗ|ಕೀಟ|രോഗം|കീടം/i.test(q)) {
     const org = crop.organicRemedy.replace(/\.+$/, '');
     const chem = crop.chemicalDosage.replace(/\.+$/, '');
     if (isTa) return `${cropName} பாதுகாப்புக்கு இயற்கை வழி: ${org}. தீவிர பாதிப்புக்கு: ${chem}.`;
@@ -297,6 +611,16 @@ export const getOfflineAgriculturalResponse = (
     if (isKn) return `${cropName} ರಕ್ಷಣೆಗೆ ಸಾವಯವ ಉಪಾಯ: ${org}. ತೀವ್ರ ಹಾನಿಗೆ: ${chem}.`;
     if (isMl) return `${cropName} രോഗനിയന്ത്രണം: ജൈവ രീതി: ${org}. കീടബാധയ്ക്ക്: ${chem}.`;
     return `For ${crop.name.en} disease management: Organic control: ${org}. Chemical spray: ${chem}.`;
+  }
+
+  // ── INTENT: SOIL REQUIREMENTS (மண் / SOIL / MITTI / నేల / ಮಣ್ಣು / ಮണ്ണ്) ──
+  if (/மண்|soil|மணல்|கரிசல்|வண்டல்|செம்மண்|நிலம்|mitti|నేల|మట్టి|ಮಣ್ಣು|മണ്ണ്/i.test(q)) {
+    if (isTa) return `${cropName} சாகுபடிக்கு உகந்த மண்: ${crop.soil}. நல்ல வடிகால் வசதி உறுதி செய்வது வேர் அழுகலைத் தடுக்கும்.`;
+    if (isHi) return `${cropName} के लिए सर्वोत्तम मिट्टी: ${crop.soil}। जल निकासी का उचित प्रबंध करें।`;
+    if (isTe) return `${cropName} సాగుకు అనువైన నేల: ${crop.soil}. మంచి నీటి పారుదల వేరు కుళ్లును నివారిస్తుంది.`;
+    if (isKn) return `${cropName} ಬೆಳೆಗೆ ಸೂಕ್ತವಾದ ಮಣ್ಣು: ${crop.soil}. ಉತ್ತಮ ಒಳಚರಂಡಿ ಬೇರು ಕೊಳೆಯುವಿಕೆಯನ್ನು ತಡೆಯುತ್ತದೆ.`;
+    if (isMl) return `${cropName} കൃഷിക്ക് അനുയോജ്യമായ മണ്ണ്: ${crop.soil}. நல்ல നീர்வாർച്ച வேருசീയൽ തടയും.`;
+    return `Optimal soil for ${crop.name.en}: ${crop.soil}. Good drainage is essential to avoid root rot.`;
   }
 
   // ── INTENT 5: SOWING SEASON & SEED VARIETIES (விதை / ரகம் / பருவம் / சாகுபடி / வளர்க்க / SOW / VARIETY) ──
@@ -339,6 +663,61 @@ export const getOfflineAgriculturalResponse = (
     if (isKn) return `ಇಂದು ಹವಾಮಾನವು ಸಾಮಾನ್ಯವಾಗಿರುತ್ತದೆ. ಕೃಷಿ ಚಟುವಟಿಕೆಗಳಿಗೆ ಸೂಕ್ತವಾಗಿದೆ.`;
     if (isMl) return `ഇന്ന് കാലാവസ്ഥ സാധാരണ നിലയിലാണ്. കാർഷിക ജോലികൾക്ക് അനുയോജ്യമാണ്.`;
     return `Weather conditions are currently fair. Suitable for regular field operations and irrigation.`;
+  }
+
+  // ── INTENT 9: LIVESTOCK & DAIRY (கால்நடை / மாடு / பால் / பசு / ஆடு / LIVESTOCK / DAIRY / COW) ──
+  if (/கால்நடை|மாடு|பசு|ஆடு|பால்|தீவனம்|கோமாரி|மடிநோய்|livestock|dairy|cattle|cow|goat|buffalo|milk|పాడి|పశువులు|పాలు|ಆಕಳು|ಹಸು|ಹಾಲು|പശു|പാൽ/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.livestock_dairy;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT 10: ORGANIC & NATURAL FARMING (இயற்கை / பஞ்சகவ்யா / மண்புழு / ORGANIC / PANCHAGAVYA) ──
+  if (/இயற்கை விவசாயம்|பஞ்சகவ்யா|ஜீவாமிர்தம்|மண்புழு|சாணம்|organic|panchagavya|vermicompost|biofertilizer|సేంద్రీయ|సహజ వ్యవసాయం|ಸಾವಯವ|ಜೈವಿಕ|ജൈവകൃഷി/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.organic_farming;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT 13: GOVERNMENT SCHEMES & SUBSIDIES (திட்டம் / மானியம் / SCHEME / SUBSIDY / KISAN) ──
+  if (/திட்டம்|மானியம்|pm kisan|காப்பீடு|insurance|scheme|subsidy|yojana|పథకం|రాయితీ|ಯೋಜನೆ|ಸಹಾಯಧನ|പദ്ധതി|സബ്‌സിഡി/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.government_schemes;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT 14: HELPLINES & INSTITUTIONS (ஹெல்ப்லைன் / உதவி எண் / HELPLINE / KISAN CALL CENTRE / TNAU) ──
+  if (/ஹெல்ப்லைன்|உதவி எண்|அலுவலகம்|கால் சென்டர்|helpline|call centre|kcc|tnau|officer|హెల్ప్‌లైన్|ಸಹಾಯವಾಣಿ|ഹെൽപ്പ്‌ലൈൻ/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.institutions_helplines;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT 15: POST-HARVEST & MARKETING (சேமிப்பு / உழவர் சந்தை / STORAGE / MARKETPLACE) ──
+  if (/சேமிப்பு|விற்பனை|உழவர் சந்தை|கொள்முதல்|storage|post harvest|godown|cold storage|procurement|అమ్మకం|రైతు బజార్|ಮಾರಾಟ|ರೈತ ಸಂತೆ|വിപണനം|കർഷക വിപണി/i.test(q)) {
+    const d = /சேமிப்பு|storage|godown/i.test(q) ? OFFLINE_DOMAIN_KNOWLEDGE.post_harvest : OFFLINE_DOMAIN_KNOWLEDGE.farmer_business;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
   }
 
   // Default Precision 1-2 sentence response

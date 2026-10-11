@@ -204,7 +204,7 @@ DISEASE CONTEXT:
 ${diseaseBlock}
 ==================================================
 CRITICAL INSTRUCTION FOR AI RESPONSE:
-1. Every answer MUST be specifically personalized for this farmer growing ${crop} in ${district} with ${soil} soil.
+1. Prioritize the specific crop and topic asked in the user's current query. Use this farmer profile (${crop} in ${district} with ${soil} soil) ONLY as background context or when the user does not specify a different crop. If the user asks about another crop (e.g., Brinjal, Tomato, etc.), ALWAYS answer specifically for that requested crop!
 2. If weather indicates rain/heavy rain, PROACTIVELY advise AGAINST spraying chemicals or harvesting today.
 3. Incorporate market price trends when suggesting harvesting, selling timing, or crop selection.
 4. Always respond in the requested language (${lang}).

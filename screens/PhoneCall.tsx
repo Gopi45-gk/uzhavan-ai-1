@@ -7,6 +7,7 @@ import { fetchProfileFromFirestore } from '../services/firestoreProfile';
 import { getStoredFarmerProfile, getRecentDisease } from '../services/farmerContextService';
 import { speakText, stopSpeech, sanitizeTextForSpeech, splitTextIntoSentences } from '../services/ttsService';
 import { getApiBaseUrl } from '../services/api';
+import { OFFLINE_CROP_DATABASE, OFFLINE_DOMAIN_KNOWLEDGE, CropData } from '../services/offlineIntelligenceService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MULTI-SOURCE INTELLIGENCE & API ORCHESTRATION ARCHITECTURE
@@ -86,8 +87,239 @@ interface FarmerContext {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LAYER 2: 16-INTENT AGRICULTURE QUERY ROUTER & ENTITY EXTRACTOR
+// LAYER 2: MULTILINGUAL CROP CATALOG & 16-INTENT AGRICULTURE ROUTER
 // ═══════════════════════════════════════════════════════════════════════════
+interface CropCatalogEntry {
+  canonical: string;
+  dbKey: string;
+  tamilName: string;
+  aliases: string[];
+}
+
+const CROP_CATALOG: CropCatalogEntry[] = [
+  {
+    canonical: 'Brinjal',
+    dbKey: 'brinjal',
+    tamilName: 'கத்தரிக்காய்',
+    aliases: ['கத்தரிக்காய்', 'கத்தரி', 'கத்திரி', 'brinjal', 'eggplant', 'baingan', 'बैंगन', 'వంకాయ', 'ಬದನೆಕಾಯಿ', 'വഴുതന', 'aubergine']
+  },
+  {
+    canonical: 'Tomato',
+    dbKey: 'tomato',
+    tamilName: 'தக்காளி',
+    aliases: ['தக்காளி', 'tomato', 'tamatar', 'टमाटर', 'టమోటా', 'ಟೊಮೆಟೊ', 'തക്കാളി']
+  },
+  {
+    canonical: 'Paddy',
+    dbKey: 'paddy',
+    tamilName: 'நெல்',
+    aliases: ['நெல்லு', 'நெல்', 'அரிசி', 'paddy', 'rice', 'dhan', 'వరి', 'ಭತ್ತ', 'നെല്ല്', 'चावल', 'धान']
+  },
+  {
+    canonical: 'Onion',
+    dbKey: 'onion',
+    tamilName: 'வெங்காயம்',
+    aliases: ['சின்ன வெங்காயம்', 'பெரிய வெங்காயம்', 'வெங்காயம்', 'onion', 'shallot', 'shallots', 'pyaz', 'प्याज', 'ఉల్లిపాయ', 'ಈರುಳ್ಳಿ', 'ഉള്ളി']
+  },
+  {
+    canonical: 'Okra',
+    dbKey: 'okra',
+    tamilName: 'வெண்டைக்காய்',
+    aliases: ['வெண்டைக்காய்', 'வெண்டை', 'வெண்டக்காய்', 'okra', "lady's finger", 'ladies finger', 'ladyfinger', 'bhindi', 'भिंडी', 'బెండకాయ', 'ಬೆಂಡೇಕಾಯಿ', 'വെണ്ടയ്ക്ക']
+  },
+  {
+    canonical: 'Cabbage',
+    dbKey: 'cabbage',
+    tamilName: 'முட்டைக்கோஸ்',
+    aliases: ['முட்டைக்கோஸ்', 'முட்டை கோஸ்', 'கோஸ்', 'cabbage', 'patta gobhi', 'पत्ता गोभी', 'క్యాబேజీ', 'ಕೋಸು', 'കാബേജ്']
+  },
+  {
+    canonical: 'Cauliflower',
+    dbKey: 'cauliflower',
+    tamilName: 'காலிஃபிளவர்',
+    aliases: ['காலிஃபிளவர்', 'பூக்கோஸ்', 'cauliflower', 'phool gobhi', 'फूल गोभी', 'కాలీఫ్లవర్', 'ಹೂಕೋಸು', 'കോളിഫ്ലവർ']
+  },
+  {
+    canonical: 'Potato',
+    dbKey: 'potato',
+    tamilName: 'உருளைக்கிழங்கு',
+    aliases: ['உருளைக்கிழங்கு', 'உருளை', 'potato', 'potatoes', 'aloo', 'aalu', 'आलू', 'బంగాళాదుంప', 'ಆಲೂಗಡ್ಡೆ', 'ഉരുളക്കിഴങ്ങ്']
+  },
+  {
+    canonical: 'Chilli',
+    dbKey: 'chilli',
+    tamilName: 'மிளகாய்',
+    aliases: ['பச்சை மிளகாய்', 'வற்றல் மிளகாய்', 'மிளகாயில்', 'மிளகாய்க்கு', 'மிளகாயின்', 'மிளகாயை', 'மிளகாய', 'மிளகாய்', 'chilli', 'chili', 'chillies', 'mirch', 'मिर्च', 'మిరప', 'ಮೆಣಸಿನಕಾಯಿ', 'മുളക്', 'pepper']
+  },
+  {
+    canonical: 'Cotton',
+    dbKey: 'cotton',
+    tamilName: 'பருத்தி',
+    aliases: ['பருத்தி', 'cotton', 'kapas', 'कपास', 'పత్తి', 'ಹತ್ತಿ', 'പരുത്തി']
+  },
+  {
+    canonical: 'Banana',
+    dbKey: 'banana',
+    tamilName: 'வாழை',
+    aliases: ['வாழைக்காய்', 'வாழைப்பழம்', 'வாழை', 'banana', 'plantain', 'kela', 'केला', 'అరటి', 'ಬಾಳೆ', 'വാഴ']
+  },
+  {
+    canonical: 'Carrot',
+    dbKey: 'carrot',
+    tamilName: 'கேரட்',
+    aliases: ['கேரட்', 'carrot', 'gajar', 'गाजर', 'క్యారెట్', 'ಕ್ಯಾರೆಟ್', 'കാരറ്റിന്', 'കാരറ്റ', 'കാരറ്റ്']
+  },
+  {
+    canonical: 'Sugarcane',
+    dbKey: 'sugarcane',
+    tamilName: 'கரும்பு',
+    aliases: ['கரும்பு', 'sugarcane', 'cane', 'ganna', 'गन्ना', 'చెరకు', 'ಕಬ್ಬು', 'കരിമ്പ്']
+  },
+  {
+    canonical: 'Maize',
+    dbKey: 'maize',
+    tamilName: 'மக்காச்சோளம்',
+    aliases: ['மக்காச்சோளம்', 'மக்கா சோளம்', 'மக்காச்சோள', 'மக்கா சோள', 'மக்கச்சோளம்', 'சோளப்பயிர்', 'சோளம்', 'சோளத்', 'maize', 'corn', 'makka', 'bhutta', 'मक्का', 'भुट्टा', 'మొక్కజొన్న', 'ಮೆಕ್ಕೆಜೋಳ', 'ചോളം']
+  },
+  {
+    canonical: 'Millets',
+    dbKey: 'millets',
+    tamilName: 'கம்பு மற்றும் கேழ்வரகு (தானியங்கள்)',
+    aliases: ['கம்பு', 'கேழ்வரகு', 'திணை', 'சாமை', 'குதிரைவாலி', 'வரகு', 'ராகி', 'bajra', 'ragi', 'millet', 'millets', 'pearl millet', 'finger millet', 'बाजरा', 'रागी', 'సజ్జలు', 'రాగులు', 'ಸಜ್ಜೆ', 'ರಾಗಿ', 'കമ്പം', 'റാഗി']
+  },
+  {
+    canonical: 'Groundnut',
+    dbKey: 'groundnut',
+    tamilName: 'நிலக்கடலை',
+    aliases: ['நிலக்கடலை', 'மணிலா', 'வேர்க்கடலை', 'கடலை', 'groundnut', 'peanut', 'mungfali', 'मूंगफली', 'వేరుశెనగ', 'ಕಡಲೆಕಾಯಿ', 'നിലക്കடല']
+  },
+  {
+    canonical: 'Turmeric',
+    dbKey: 'turmeric',
+    tamilName: 'மஞ்சள்',
+    aliases: ['மஞ்சள்', 'turmeric', 'haldi', 'हल्दी', 'పసుపు', 'ಅரிಶಿನ', 'മഞ്ഞൾ']
+  },
+  {
+    canonical: 'Coconut',
+    dbKey: 'coconut',
+    tamilName: 'தென்னை',
+    aliases: ['தென்னை மரம்', 'தென்னை', 'தேங்காய்', 'coconut', 'nariyal', 'नारियल', 'కొబ్బரி', 'ತೆಂಗಿನಕಾಯಿ', 'തെങ്ങ്', 'thennai', 'thengai']
+  },
+  {
+    canonical: 'Wheat',
+    dbKey: 'wheat',
+    tamilName: 'கோதுமை',
+    aliases: ['கோதுமை', 'wheat', 'gehu', 'गेहूं', 'గోధుమ', 'ಗೋಧಿ', 'ಗೋതമ്പ്']
+  },
+  {
+    canonical: 'Mango',
+    dbKey: 'mango',
+    tamilName: 'மாங்காய்',
+    aliases: ['மாம்பழம்', 'மாங்காய்', 'மாமரம்', 'mango', 'aam', 'आम', 'మామిడి', 'ಮಾವು', 'മാങ്ങ', 'maangai', 'mambazham']
+  },
+  {
+    canonical: 'Blackgram',
+    dbKey: 'blackgram',
+    tamilName: 'உளுந்து',
+    aliases: ['உளுந்து', 'பயறு', 'black gram', 'blackgram', 'urad', 'उड़द', 'మినుములు', 'ಉದ್ದು', 'ഉഴുന്ന്', 'ulundu']
+  },
+  {
+    canonical: 'Greengram',
+    dbKey: 'greengram',
+    tamilName: 'பாசிப்பயறு',
+    aliases: ['பாசிப்பயறு', 'பச்சைப்பயறு', 'பயறு', 'green gram', 'greengram', 'moong', 'मूंग', 'పెసలు', 'ಹೆಸರುಕಾಳು', 'ചെറുപയർ']
+  },
+  {
+    canonical: 'Chickpea',
+    dbKey: 'chickpea',
+    tamilName: 'கொண்டைக்கடலை',
+    aliases: ['கொண்டைக்கடலை', 'சுண்டல்', 'சென்னா', 'chickpea', 'bengal gram', 'chana', 'चना', 'శనగలు', 'ಕಡಲೆ', 'കടല']
+  },
+  {
+    canonical: 'Jasmine',
+    dbKey: 'jasmine',
+    tamilName: 'மல்லிகை',
+    aliases: ['மல்லிகை', 'குண்டுமல்லி', 'மல்லி', 'jasmine', 'chameli', 'चमेली', 'మల్లె', 'ಮಲ್ಲಿಗೆ', 'മുല്ല', 'malli', 'gundumalli']
+  }
+];
+
+interface FlatCropMatch {
+  alias: string;
+  canonical: string;
+  dbKey: string;
+}
+
+const SORTED_CROP_ENTRIES: FlatCropMatch[] = CROP_CATALOG
+  .flatMap(entry => entry.aliases.map(alias => ({
+    alias: alias.toLowerCase(),
+    canonical: entry.canonical,
+    dbKey: entry.dbKey,
+  })))
+  .sort((a, b) => b.alias.length - a.alias.length);
+
+const PRONOUN_FOLLOWUP_MARKERS = [
+  'அதுக்கு', 'அதற்கு', 'அதில்', 'அதன்', 'இந்த பயிருக்கு', 'அந்த பயிருக்கு', 'அதை', 'இதற்கு', 'இதில்', 'இதன்', 'இந்த பயிர்',
+  'for it', 'to it', 'in it', 'for this crop', 'this crop', 'that crop', 'its', 'about it',
+  'उसमें', 'उसके लिए', 'इसके लिए', 'इसमें', 'इस फसल', 'उस फसल',
+  'దానికి', 'దీనికి', 'ఈ పంటకు', 'ఆ పంటకు',
+  'ಅದಕ್ಕೆ', 'ಇದಕ್ಕೆ', 'ಈ ಬೆಳೆಗೆ',
+  'അതിന്', 'ഇതിന്', 'ഈ വിളയ്ക്ക്'
+];
+
+function identifyCropDbKey(cropName: string | null | undefined): string {
+  if (!cropName) return 'paddy';
+  const c = cropName.toLowerCase().trim();
+  for (const item of CROP_CATALOG) {
+    if (item.canonical.toLowerCase() === c || item.dbKey === c || item.aliases.some(a => a.toLowerCase() === c || c.includes(a.toLowerCase()))) {
+      return item.dbKey;
+    }
+  }
+  return 'paddy';
+}
+
+function extractCropEntity(
+  message: string,
+  history: string,
+  activeSessionCrop: string | null,
+  isGeneralQuery: boolean,
+  profileCrop: string
+): string | null {
+  const text = message.toLowerCase();
+
+  // 1. Direct greedy alias search in the message
+  for (const entry of SORTED_CROP_ENTRIES) {
+    if (text.includes(entry.alias)) {
+      return entry.canonical;
+    }
+  }
+
+  // 2. Anaphora / pronoun check
+  const hasPronoun = PRONOUN_FOLLOWUP_MARKERS.some(marker => text.includes(marker));
+  if (hasPronoun && activeSessionCrop) {
+    return activeSessionCrop;
+  }
+
+  // 3. Explicit reference to farmer's own crop ("என் பயிர்", "my crop", "என் தோட்டம்")
+  const refersToOwnCrop = /என் பயிர்|எங்க பயிர்|my crop|our crop|मेरी फसल|నా పంట|ನನ್ನ ಬೆಳೆ|എന്റെ വിള/i.test(text);
+  if (refersToOwnCrop) {
+    return profileCrop || activeSessionCrop || null;
+  }
+
+  // 4. If this is a general topic (weather, rain, schemes, livestock, loan, storage, soil testing), return null
+  if (isGeneralQuery) {
+    return null;
+  }
+
+  // 5. Short follow-up without pronoun, ONLY if active conversation has a crop AND the query is specifically a crop metric (dosage/spacing/variety/price)
+  // and NOT a standalone topic question (rain, weather, market general, etc.)
+  const isGenericTopic = /மழை|வானிலை|திட்டம்|மானியம்|மாடு|பால்|கால்நடை|சேமிப்பு|வங்கி|கடன்/i.test(text);
+  if (!isGenericTopic && activeSessionCrop && (text.length < 35 && /எவ்வளவு|அளவு|rate|விலை|உரம்|மருந்து/i.test(text))) {
+    return activeSessionCrop;
+  }
+
+  return null;
+}
+
 interface MultiSourceAnalysis {
   primary_intent: string;
   intents: string[];
@@ -109,91 +341,106 @@ async function analyzeQueryIntents(
   message: string,
   history: string,
   userLang: string,
-  profile: FarmerContext
+  profile: FarmerContext,
+  activeSessionCrop: string | null = null,
+  activeSessionTopic: string | null = null,
+  activeSessionEntity: string | null = null
 ): Promise<MultiSourceAnalysis> {
   const text = message.toLowerCase();
 
-  // Keyword intent detection fallbacks across 16 categories
-  const isWeather = /weather|மழை|வானிலை|rain|forecast|मौसम|வருமா|மழையா|temp|wind|cloud|humidity/i.test(text);
-  const isMarket = /price|விலை|rate|market|சந்தை|மண்டி|cost|quintal|₹|வேலை|per kg/i.test(text);
-  const isNews = /news|செய்தி|செய்திகள்|update|அறிவிப்பு|latest|today news|அரசு செய்தி/i.test(text);
-  const isDisease = /disease|நோய்|blight|rot|spot|wilt|fungus|virus|symptom|அறிகுறி|பாதிப்பு|மஞ்சள்|காயுது/i.test(text);
-  const isPrevention = /prevention|தடுப்பது|தடுக்க|control|வராமல்|avoid|protect|முன்னெச்சரிக்கை/i.test(text);
-  const isNatural = /natural|organic|இயற்கை|மூலிகை|வேப்பண்ணெய்|neem|home remedy|இயற்கை மருந்து|பஞ்சகவ்யா/i.test(text);
-  const isChemical = /chemical|pesticide|fungicide|மருந்து|தெளிக்க|spray|dose|அளவு|வேதியியல்/i.test(text);
-  const isRecommendation = /which crop|என்ன பயிர்|grow|sow|பயிரிடலாம்|season|பயிர் தேர்வு|விதைக்க/i.test(text);
-  const isSoil = /soil|மண்|ph|alluvial|red soil|black soil|clay|மண் பரிசோதனை/i.test(text);
-  const isIrrigation = /irrigation|பாசனம்|தண்ணீர்|water|drip|நீர் பாசனம்|பாசன/i.test(text);
-  const isFertilizer = /fertilizer|உரம்|nitrogen|potash|urea|dap|npk|கம்போஸ்ட்/i.test(text);
-  const isSchemes = /scheme|subsid|திட்டம்|மானியம்|pm kisan|காப்பீடு|insurance/i.test(text);
-  const isLivestock = /cow|goat|cattle|மாடு|ஆடு|கால்நடை|பால்/i.test(text);
-  const isPostHarvest = /storage|சேமிப்பு|விற்பனை|விலை எப்போது உயரும்|post harvest/i.test(text);
-  const isLoan = /loan|வங்கி கடன்|credit|kisan credit/i.test(text);
-  const isWeeds = /weed|களை|களைக்கொல்லி|களை மேலாண்மை/i.test(text);
+  // Categorized triggers with strict prioritization across 5 Indian languages
+  const isFertilizer = /fertilizer|உரம்|உரங்கள்|உர அளவு|npk|dap|urea|யூரியா|பொட்டாஷ்|தழைச்சத்து|சாம்பல் சத்து|மணிச்சத்து|தொழுவுரம்|கம்போஸ்ட்|micronutrient|நுண்ணூட்டம்|போரான்|துத்தநாகம்|boron|zinc|குறைபாடு|deficiency|போட வேண்டும்|இட வேண்டும்|khad|खाद|उर्वरक|डीएपी|यूरिया|manure|poshak|ఎరువు|ఎరువులు|యూరియా|గೊಬ್ಬರ|ರಸಗೊಬ್ಬರ|ವளம்|രാസവളം/i.test(text);
+  const isPostHarvest = /தானிய சேமிப்பு|சேமிப்பு|தானியங்களை|தானியம்|cold storage|shelf life|குளிர்பதன|மூட்டை|ஈரப்பதம்|வண்டு வராமல்|storage|godown|ధాన్యాల నిల్వ|ಧಾನ್ಯ ಸಂಗ್ರಹ|ധാന്യ സംഭരണം/i.test(text);
+  const isWeeds = /களை|களைகள்|களைக்கொல்லி|களை மேலாண்மை|weed\b|weeds\b|herbicide|కలుపు|ಕಳೆ|കള/i.test(text);
+  const isIrrigation = /irrigation|பாசனம்|சொட்டு நீர்|நீர் பாய்ச்ச|தண்ணீர் பாய்ச்ச|watering|drip irrigation|sprinkler|தண்ணீர் விட|சிஞ்சாயி|నీరు|నీటిపారుదల|తడి|ನೀರು|ನೀರಾವರಿ|ಹನಿ ನೀರಾವರಿ|വെള്ളം|നനയ്ക്കൽ|ജലസೇചനം|पानी|सिंचाई|ड्रिप/i.test(text);
+  const isSoilTesting = /மண் பரிசோதனை|மண் ஆய்வு|soil test|soil health|மாதிரி எடுக்க|மாதிரி சேகரிக்க|నేల పరీక్ష|మట్టి పరీక్ష|ಮಣ್ಣು ಪರೀಕ್ಷೆ|മണ്ണ് പരിശോധന|मिट्टी परीक्षण/i.test(text);
+  const isSoil = (isSoilTesting || /மண்|மண் வகை|மணல்|கரிசல் மண்|வண்டல் மண்|செம்மண்|நிலம்|soil\b|ph\b|mitti\b|నేల|మట్టి|మట్టి రకం|ಮಣ್ಣು|ಮಣ್ಣಿನ ವಿಧ|ನೆಲ|മണ്ണ്|മണ്ണിന്റെ|നിലം|मिट्टी|मृदा|भूमि/i.test(text)) && !isFertilizer;
+  const isDisease = (/disease|நோய்|blight|rot|spot|wilt|fungus|virus|symptom|அறிகுறி|பாதிப்பு|காயுது|புழு|வண்டு|பூச்சி|அழுகல்|சுருட்டை|infection|pest\b|attack|తెగులు|పురుగు|రోగం|మచ్చ|కుళ్ళు|ರೋಗ|ಕೀಟ|ಹುಳು|ಕೊಳೆರೋಗ|ಬೂದಿರೋಗ|രോഗം|കീടം|പുഴു|ചീയൽ|വാട്ടം|कीट|रोग|झुलसा|सड़न|इल्ली/i.test(text) || (/குறைபாடு/i.test(text) && !isFertilizer)) && !isPostHarvest;
+  const isChemical = /chemical|pesticide|fungicide|மருந்து|தெளிக்க|spray\b|dose\b|மருந்தடிக்க|பூச்சிக்கொல்லி|మందు|స్ప్రే|పిచికారీ|పురుగుమందు|ಔಷಧ|ಸಿಂಪಡಣೆ|ಕೀಟನಾಶಕ|മരുന്ന്|തളിക്കാൻ|കീടനാശിനി|दवा|दवाई|छिड़काव|कीटनाशक/i.test(text) && !isFertilizer;
+  const isPrevention = /prevention|தடுப்பது|தடுக்க|control|வராமல்|avoid|protect|முன்னெச்சரிக்கை|నివారణ|ತಡೆಗಟ್ಟುವಿಕೆ|തടയാൻ|रोकथाम/i.test(text) && !isPostHarvest;
+  const isNatural = /natural|organic|இயற்கை|மூலிகை|வேப்ப|வேப்பண்ணெய்|neem|home remedy|பஞ்சகவ்யா|panchagavya|ஜீவாமிர்தம்|மண்புழு|சாணம்|సేంద్రీయ|సహజ|సಾವಯವ|ಜೈವಿಕ|ജൈവ|जैविक/i.test(text);
+  const isRecommendation = /which crop|என்ன பயிர்|grow\b|sow\b|பயிரிடலாம்|பயிர் தேர்வு|விதைக்கலாம்|எந்த பயிர்|suitable crop|பயிரிடலாமா|ఏ పంట|సాగు చేయవచ్చా|ಯಾವ ಬೆಳೆ|ಬೆಳೆಯಬಹುದಾ|ഏത് വിള|कौन सी फसल/i.test(text);
+  const isSeasonAndVarieties = /பருவம்|எந்த பருவம்|உகந்த பருவம்|பருவத்தில்|variet|ரகம்|ரகங்கள்|விதை நேர்த்தி|seed treatment|seed rate|రకాలు|విత్తన శుద్ధి|విత్తే కాలం|ತಳಿಗಳು|ಬಿತ್ತನೆ ಸಮಯ|ಬೀಜೋಪಚಾರ|ഇനങ്ങൾ|വിത്തുചികിത്സ|किस्में|बुवाई का समय|बीज उपचार/i.test(text);
+  const isCultivation = /நடவு|சாகுபடி|விதைப்பு|spacing|இடைவெளி|transplant|உழவு|நிலம் தயாரிக்க|harvest|அறுவடை|cultivation|సాగు విధానం|ನಾಟಿ|ಬೆಳೆಯುವ ವಿಧಾನ|കൃഷി രീതി|रोपाई|खेती विधि/i.test(text);
+  const isWeather = /weather|மழை|வானிலை|rain\b|forecast|मौसम|வருமா|மழையா|குளிர்|வெப்பநிலை|மழை பெய்யுமா|மழை பெய்தால்|மழை வந்தா|వర్షం|వాతావరణం|ಮಳೆ|ಹವಾಮಾನ|മഴ|കാലാവസ്ഥ|बारिश|मौसम|वर्षा/i.test(text);
+  const isBusiness = /selling|sales|business|உழவர் சந்தை|e-nam|enam|நேரடி கொள்முதல்|வியாபாரி|buyer|రైతు బజార్|రైతు సಂತೆ|കർഷക വിപണി|किसान मंडी/i.test(text);
+  const isMarket = /price|விலை|rate\b|market|சந்தை|மண்டி|cost|quintal|ரூபாய்|₹|mandi price|rate enna|விலை என்ன|ధర|రేటు|మార్కెట్|బెలె|ದರ|ಮಾರುಕಟ್ಟೆ|വില|വിപണി|भाव|दाम|मंडी/i.test(text) && !isBusiness;
+  const isSchemes = /scheme|subsid|திட்டம்|மானியம்|pm kisan|பிஎம் கிசான்|காப்பீடு|insurance|கிசான்|pmfby|పథకం|రాయితీ|ಯೋಜನೆ|ಸಹಾಯಧನ|പദ്ധതി|സബ്‌സിഡി|योजना|सब्सिडी/i.test(text);
+  const isLivestock = /cow|goat|cattle|buffalo|sheep|மாடு|ஆடு|கால்நடை|பால்|தீவனம்|மடிநோய்|கோமாரி|dairy|milk yield|கறவை|பசும்பால்|పాడి|పశువులు|పాలు|ಆಕಳು|ಹಸು|ಹಾಲು|പശു|പാൽ|गाय|भैंस|दूध|पशु/i.test(text);
+  const isNews = /news|செய்தி|செய்திகள்|update|அறிவிப்பு|latest|today news|వార్తలు|ಸುದ್ದಿ|വാർത്തകൾ|समाचार/i.test(text);
+  const isLoan = /loan|வங்கி கடன்|credit|kisan credit|kcc|வட்டி|கடனுதவி|రుణం|ಸಾಲ|വായ്പ|ऋण|कर्ज/i.test(text);
+  const isInstitutions = /helpline|ஹெல்ப்லைன்|உதவி எண்|kisan call centre|1800|tnau|அலுவலர்|kvk|సహాయ కేంద్రం|ಸಹಾಯವಾಣಿ|സഹായ നമ്പർ|हेल्पलाइन/i.test(text);
+
+  const isDosageQuery = /எவ்வளவு அளவு|அளவு என்ன|dosage|how much quantity|எவ்வளவு போடணும்|எவ்வளவு தெளிக்கணும்|dose|quantity/i.test(text);
 
   const detectedIntents: string[] = [];
-  if (isWeather) detectedIntents.push('weather');
-  if (isMarket) detectedIntents.push('market');
-  if (isNews) detectedIntents.push('news');
-  if (isDisease) detectedIntents.push('disease');
-  if (isPrevention) detectedIntents.push('prevention');
-  if (isNatural) detectedIntents.push('natural_remedy');
-  if (isChemical) detectedIntents.push('chemical_remedy');
-  if (isRecommendation) detectedIntents.push('crop_recommendation');
-  if (isSoil) detectedIntents.push('soil');
-  if (isIrrigation) detectedIntents.push('irrigation');
+
+  // PUSH IN STRICT LOGICAL PRIORITY:
   if (isFertilizer) detectedIntents.push('fertilizer');
+  if (isIrrigation) detectedIntents.push('irrigation');
+  if (isPostHarvest) detectedIntents.push('post_harvest');
+  if (isWeeds) detectedIntents.push('weeds');
+  if (isSoilTesting) detectedIntents.push('soil_testing');
+  else if (isSoil) detectedIntents.push('soil');
+  if (isDisease) detectedIntents.push('disease');
+  if (isChemical) detectedIntents.push('chemical_remedy');
+  if (isNatural) detectedIntents.push('natural_remedy');
+  if (isPrevention) detectedIntents.push('prevention');
+  if (isRecommendation) detectedIntents.push('crop_recommendation');
+  if (isSeasonAndVarieties) detectedIntents.push('seeds_and_varieties');
+  if (isCultivation) detectedIntents.push('crop_cultivation');
+  if (isWeather) detectedIntents.push('weather');
+  if (isBusiness) detectedIntents.push('farmer_business');
+  if (isMarket) detectedIntents.push('market');
   if (isSchemes) detectedIntents.push('government_schemes');
   if (isLivestock) detectedIntents.push('livestock');
-  if (isPostHarvest) detectedIntents.push('post_harvest');
   if (isLoan) detectedIntents.push('loan_credit');
-  if (isWeeds) detectedIntents.push('weeds');
+  if (isInstitutions) detectedIntents.push('institutions_helplines');
+  if (isNews) detectedIntents.push('news');
+
+  // Handle follow-up queries that depend on previous context
+  if (isDosageQuery) {
+    if (activeSessionTopic === 'fertilizer' || activeSessionTopic === 'fertilizer_dosage') {
+      if (!detectedIntents.includes('fertilizer')) detectedIntents.unshift('fertilizer');
+    } else if (activeSessionTopic === 'chemical_remedy' || activeSessionTopic === 'disease') {
+      if (!detectedIntents.includes('chemical_remedy')) detectedIntents.unshift('chemical_remedy');
+    }
+  }
 
   if (detectedIntents.length === 0) detectedIntents.push('general_farming');
 
-  // Crop entity extraction
-  const CROP_MAP: Record<string, string> = {
-    'கேரட்': 'Carrot', 'carrot': 'Carrot',
-    'தக்காளி': 'Tomato', 'tomato': 'Tomato',
-    'நெல்': 'Paddy', 'நெல்லு': 'Paddy', 'அரிசி': 'Paddy', 'paddy': 'Paddy', 'rice': 'Paddy',
-    'வெங்காயம்': 'Onion', 'onion': 'Onion',
-    'உருளை': 'Potato', 'உருளைக்கிழங்கு': 'Potato', 'potato': 'Potato', 'aloo': 'Potato',
-    'கத்தரி': 'Brinjal', 'கத்தரிக்காய்': 'Brinjal', 'brinjal': 'Brinjal',
-    'வெண்டை': 'Okra', 'வெண்டைக்காய்': 'Okra', 'okra': 'Okra',
-    'மிளகாய்': 'Chilli', 'chilli': 'Chilli', 'chili': 'Chilli',
-    'பருத்தி': 'Cotton', 'cotton': 'Cotton',
-    'கரும்பு': 'Sugarcane', 'sugarcane': 'Sugarcane',
-    'மக்காச்சோளம்': 'Maize', 'சோளம்': 'Maize', 'maize': 'Maize', 'corn': 'Maize',
-    'வாழை': 'Banana', 'வாழைக்காய்': 'Banana', 'banana': 'Banana',
-    'மஞ்சள்': 'Turmeric', 'turmeric': 'Turmeric',
-    'நிலக்கடலை': 'Groundnut', 'கடலை': 'Groundnut', 'groundnut': 'Groundnut', 'peanut': 'Groundnut',
-    'தென்னை': 'Coconut', 'தேங்காய்': 'Coconut', 'coconut': 'Coconut',
-    'கோதுமை': 'Wheat', 'wheat': 'Wheat',
-    'மாங்காய்': 'Mango', 'மாம்பழம்': 'Mango', 'mango': 'Mango',
-  };
-  let extractedCrop: string | null = null;
-  const textLower = text.toLowerCase();
-  for (const [kw, c] of Object.entries(CROP_MAP)) {
-    if (textLower.includes(kw)) { extractedCrop = c; break; }
-  }
+  const isGeneralQuery = (isWeather || isSchemes || isNews || isLoan || isInstitutions || isLivestock || isPostHarvest || isSoilTesting || (isSoil && !isFertilizer && !isDisease)) && !activeSessionCrop;
+  const extractedCrop = extractCropEntity(message, history, activeSessionCrop, isGeneralQuery, profile.crop_type);
 
-  // Location entity extraction
-  const districts = ['thanjavur', 'தஞ்சாவூர்', 'madurai', 'மதுரை', 'coimbatore', 'கோயம்புத்தூர்', 'salem', 'சேலம்', 'trichy', 'திருச்சி', 'tirunelveli', 'திருநெல்வேலி', 'vellore', 'வேலூர்', 'erode', 'ஈரோடு', 'tamil nadu', 'தமிழ்நாடு'];
+  // Extended Location entity extraction across Tamil Nadu districts
+  const districts = [
+    'thanjavur', 'தஞ்சாவூர்', 'madurai', 'மதுரை', 'coimbatore', 'கோயம்புத்தூர்',
+    'salem', 'சேலம்', 'trichy', 'திருச்சி', 'tirunelveli', 'திருநெல்வேலி',
+    'vellore', 'வேலூர்', 'erode', 'ஈரோடு', 'dindigul', 'திண்டுக்கல்',
+    'theni', 'தேனி', 'kanchipuram', 'காஞ்சிபுரம்', 'tiruppur', 'திருப்பூர்',
+    'nagapattinam', 'நாகப்பட்டினம்', 'cuddalore', 'கடலூர்', 'dharmapuri', 'தர்மபுரி',
+    'krishnagiri', 'கிருஷ்ணகிரி', 'villupuram', 'விழுப்புரம்', 'ramanathapuram', 'ராமநாதபுரம்',
+    'chennai', 'சென்னை', 'tamil nadu', 'தமிழ்நாடு'
+  ];
   let extractedLocation: string | null = null;
   for (const d of districts) {
     if (text.includes(d)) { extractedLocation = d; break; }
   }
 
-  const requires_weather = isWeather;
-  const requires_market = isMarket;
-  const requires_news = isNews;
+  const requires_weather = isWeather || detectedIntents.includes('weather');
+  const requires_market = isMarket || detectedIntents.includes('market');
+  const requires_news = isNews || detectedIntents.includes('news');
   const requires_disease_rag = isDisease || isPrevention || isNatural || isChemical;
 
   // Fast AI extraction via NVIDIA NIM router if available
   try {
     const prompt = `Analyze this farmer voice query.
 User Language: ${userLang}
-Farmer Context: Crop: ${profile.crop_type}, District: ${profile.district}
+Farmer Registered Profile: Crop: ${profile.crop_type}, District: ${profile.district}
+Active Discussed Crop: ${activeSessionCrop || 'None'}
+Active Discussed Topic: ${activeSessionTopic || 'None'}
+Detected Crop: ${extractedCrop || 'None'}
+Detected Intent Candidate: ${detectedIntents[0]}
 Query: "${message}"
 
 Respond strictly with valid JSON only:
@@ -221,14 +468,21 @@ Respond strictly with valid JSON only:
 
     if (res.ok) {
       const data = await res.json();
-      const content = data.choices?.[0]?.message?.content?.trim();
+      let content = data.choices?.[0]?.message?.content?.trim() || '';
+      content = content.replace(/```json|```/gi, '').trim();
       const parsed = JSON.parse(content);
+      const nimCrop = parsed.query_crop && !['null', 'none', 'undefined'].includes(String(parsed.query_crop).toLowerCase())
+        ? String(parsed.query_crop).trim()
+        : null;
+
+      const finalCrop = extractedCrop || (nimCrop && nimCrop.toLowerCase() !== 'null' ? nimCrop : null);
+
       return {
         primary_intent: parsed.primary_intent || detectedIntents[0],
         intents: detectedIntents,
-        emotion: parsed.emotion || 'normal',
+        emotion: parsed.emotion || (isDisease ? 'worried' : 'normal'),
         language: userLang,
-        query_crop: extractedCrop || (parsed.query_crop && !['null', 'none'].includes(String(parsed.query_crop).toLowerCase()) ? parsed.query_crop : (profile.crop_type || 'Paddy')),
+        query_crop: finalCrop,
         query_location: parsed.query_location || extractedLocation || profile.district,
         requires_weather: Boolean(parsed.requires_weather || requires_weather),
         requires_market: Boolean(parsed.requires_market || requires_market),
@@ -247,7 +501,7 @@ Respond strictly with valid JSON only:
     intents: detectedIntents,
     emotion: isDisease ? 'worried' : 'normal',
     language: userLang,
-    query_crop: extractedCrop || profile.crop_type || 'Paddy',
+    query_crop: extractedCrop,
     query_location: extractedLocation || profile.district,
     requires_weather,
     requires_market,
@@ -266,33 +520,50 @@ Respond strictly with valid JSON only:
 async function fetchWeather(location: string): Promise<string> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/weather/v2/forecast?location=${encodeURIComponent(location || 'Thanjavur')}`);
-    if (!res.ok) return '';
+    if (!res.ok) return `Live Weather: Forecast data for ${location} is temporarily unavailable from the weather service.`;
     const data = await res.json();
-    return `Live Forecast (${location}): Temp ${data.current?.temperature || 31}°C, Humidity ${data.current?.humidity || 65}%, Wind ${data.current?.windspeed || 12}km/h. Alert: ${data.rain_alert?.alert_message || 'No heavy rain expected'}. Advisory: ${data.farming_advisory || 'Clear for field operations.'}`;
-  } catch { return ''; }
+    const temp = data.current?.temperature;
+    const humidity = data.current?.humidity;
+    const wind = data.current?.windspeed;
+    const alert = data.rain_alert?.alert_message || data.rain_alert || 'No heavy rainfall alert today';
+    const advisory = data.farming_advisory || 'Clear for field operations.';
+
+    let report = `Live Weather Forecast for ${location}: `;
+    if (temp !== undefined && temp !== null) report += `Temperature ${temp}°C, `;
+    if (humidity !== undefined && humidity !== null) report += `Humidity ${humidity}%, `;
+    if (wind !== undefined && wind !== null) report += `Wind ${wind} km/h. `;
+    report += `Rainfall Status: ${alert}. Field Advisory: ${advisory}`;
+    return report;
+  } catch {
+    return `Live Weather: Forecast data for ${location} is temporarily unavailable.`;
+  }
 }
 
-async function fetchMarket(crop: string, location: string): Promise<string> {
+async function fetchMarket(crop: string | null, location: string): Promise<string> {
+  const targetCrop = crop || 'Paddy';
+  const targetLoc = location || 'Tamil Nadu';
   try {
-    const targetCrop = crop || 'Paddy';
-    const targetLoc = location || 'Tamil Nadu';
     const res = await fetch(`${API_BASE_URL}/api/market/prices?state=${encodeURIComponent(targetLoc)}&commodity=${encodeURIComponent(targetCrop)}`);
-    if (!res.ok) return '';
-    const data = await res.json();
-    const pricesList: any[] = [];
-    if (data.prices) {
-      Object.values(data.prices).forEach((arr: any) => {
-        if (Array.isArray(arr)) pricesList.push(...arr);
-      });
+    if (res.ok) {
+      const data = await res.json();
+      const pricesList: any[] = [];
+      if (data.prices) {
+        Object.values(data.prices).forEach((arr: any) => {
+          if (Array.isArray(arr)) pricesList.push(...arr);
+        });
+      }
+      const filtered = pricesList.filter(p => p.commodity?.toLowerCase().includes(targetCrop.toLowerCase()));
+      const items = filtered.length > 0 ? filtered.slice(0, 3) : pricesList.slice(0, 3);
+      if (items.length > 0) {
+        return `Agmarknet Market Prices (${targetCrop} in ${targetLoc}): ` +
+          items.map(i => `${i.commodity || targetCrop} at ${i.market || targetLoc} mandi: Modal Price ₹${i.modal_price || i.price}/quintal (Min ₹${i.min_price || i.modal_price}, Max ₹${i.max_price || i.modal_price})`).join('; ');
+      }
     }
-    const filtered = pricesList.filter(p => p.commodity?.toLowerCase().includes(targetCrop.toLowerCase()));
-    const items = filtered.length > 0 ? filtered.slice(0, 3) : pricesList.slice(0, 3);
-    if (items.length > 0) {
-      return `Agmarknet Market Prices (${targetCrop} in ${targetLoc}): ` +
-        items.map(i => `${i.commodity || targetCrop} at ${i.market || targetLoc} mandi: Modal Price ₹${i.modal_price || i.price}/quintal (Min ₹${i.min_price || i.modal_price}, Max ₹${i.max_price || i.modal_price})`).join('; ');
-    }
-    return `Agmarknet Market Prices (${targetCrop} in ${targetLoc}): Modal Price ₹2,450/quintal (Stable trend).`;
-  } catch { return ''; }
+  } catch { }
+
+  const cropKey = identifyCropDbKey(targetCrop);
+  const benchmark = OFFLINE_CROP_DATABASE[cropKey]?.marketBenchmark;
+  return `Agmarknet Market Notice: Today's live arrival price for ${targetCrop} in ${targetLoc} is currently not updated on the Agmarknet portal.${benchmark ? ` (Historical benchmark: ${benchmark})` : ''}`;
 }
 
 async function fetchNews(lang: string, state: string): Promise<string> {
@@ -309,28 +580,94 @@ async function fetchNews(lang: string, state: string): Promise<string> {
 }
 
 async function fetchAgriculturalRAG(analysis: MultiSourceAnalysis, profile: FarmerContext, query: string): Promise<string> {
-  const crop = analysis.query_crop || profile.crop_type || 'Paddy';
+  const crop = analysis.query_crop;
   const recentDisease = getRecentDisease();
 
-  let ragInfo = `Agricultural Knowledge Base RAG for Crop "${crop}":\n`;
-  if (recentDisease?.disease) {
-    ragInfo += `- Recent Disease Context: ${recentDisease.disease} (Confidence: ${recentDisease.confidence})\n`;
+  let ragInfo = '';
+
+  if (crop) {
+    const cropKey = identifyCropDbKey(crop);
+    const dbData = OFFLINE_CROP_DATABASE[cropKey];
+
+    if (dbData) {
+      ragInfo += `Agricultural Scientific Grounding for Crop "${crop}":\n`;
+
+      if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer|npk|dap|urea/i.test(query)) {
+        ragInfo += `- Scientifically Verified NPK Dosage: ${dbData.npk}\n`;
+      }
+      if (analysis.requires_disease_rag || analysis.requires_prevention || analysis.requires_chemical_remedy || analysis.requires_natural_remedy) {
+        ragInfo += `- Pests & Common Diseases: ${dbData.pestsAndDiseases}\n`;
+        ragInfo += `- Organic / Biological Remedy: ${dbData.organicRemedy}\n`;
+        ragInfo += `- Chemical Treatment & Specific Dosage: ${dbData.chemicalDosage}\n`;
+      }
+      if (analysis.intents.includes('irrigation')) {
+        ragInfo += `- Irrigation Guidelines: ${dbData.irrigation}\n`;
+      }
+      if (analysis.intents.includes('soil')) {
+        ragInfo += `- Soil Requirements: ${dbData.soil}\n`;
+      }
+      if (analysis.intents.includes('seeds_and_varieties') || analysis.intents.includes('crop_recommendation') || analysis.intents.includes('crop_cultivation')) {
+        ragInfo += `- Recommended Sowing / Season: ${dbData.sowingTime}\n`;
+        ragInfo += `- Suitable Varieties: ${dbData.varieties.join(', ')}\n`;
+      }
+      if (analysis.requires_market) {
+        ragInfo += `- Mandi Market Benchmark: ${dbData.marketBenchmark}\n`;
+      }
+      // If none of the specific subtopics triggered, include core profile
+      if (!analysis.intents.some(i => ['fertilizer', 'disease', 'chemical_remedy', 'natural_remedy', 'irrigation', 'soil', 'seeds_and_varieties', 'crop_cultivation'].includes(i))) {
+        ragInfo += `- Sowing / Season: ${dbData.sowingTime}\n`;
+        ragInfo += `- Fertilizer: ${dbData.npk}\n`;
+        ragInfo += `- Protection: ${dbData.organicRemedy}; ${dbData.chemicalDosage}\n`;
+      }
+    }
   }
-  if (analysis.requires_disease_rag || analysis.requires_prevention) {
-    ragInfo += `- Common Diseases for ${crop}: Leaf Blight, Powdery Mildew, Root Rot.\n`;
-    ragInfo += `- Prevention: Use certified seeds, 3-year crop rotation, proper spacing, avoid waterlogging.\n`;
+
+  if (recentDisease?.disease && crop && recentDisease.crop?.toLowerCase() === crop.toLowerCase()) {
+    ragInfo += `- Recent Farm Disease Scan Context: ${recentDisease.disease} (Confidence: ${recentDisease.confidence})\n`;
   }
-  if (analysis.requires_natural_remedy) {
-    ragInfo += `- Natural/Organic Management: Spray Neem oil (2%) or Neem seed kernel extract (NSKE 5%). Apply Trichoderma viride bio-fungicide (2.5kg/ha) to root zone.\n`;
-  }
-  if (analysis.requires_chemical_remedy) {
-    ragInfo += `- Chemical Treatment: Spray Mancozeb 75% WP at 2.5g/L or Carbendazim 50% WP at 1g/L. Follow product label for exact safety dosage.\n`;
-  }
-  if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer|dap|potash/i.test(query)) {
-    ragInfo += `- Recommended Fertilizer Dosage for ${crop}: Basal application of Farmyard Manure (FYM 10-15 tonnes/ha). Balanced NPK recommendation (e.g. for carrot: 40:80:60 kg NPK/ha; for paddy: 120:40:40 kg/ha; for tomato: 100:50:50 kg/ha).\n`;
-  }
+
   if (analysis.requires_schemes) {
-    ragInfo += `- Government Schemes: PM-KISAN, Pradhan Mantri Fasal Bima Yojana (Crop Insurance), Tamil Nadu Chief Minister Solar Pump Scheme.\n`;
+    ragInfo += `- Government Schemes: PM-KISAN (₹6,000/year direct financial support in 3 installments), PM Fasal Bima Yojana (Crop Insurance against weather damage), Tamil Nadu Kalaignarin All Village Integrated Agriculture Development Programme, and Subsidized Drip Irrigation.\n`;
+  }
+
+  if ((analysis.intents.includes('soil_testing') || analysis.intents.includes('soil')) && !crop) {
+    ragInfo += `- Soil Testing Guidance: Take V-shaped samples from 8-10 points across the field at 15cm depth, mix thoroughly, shade dry 500g, and submit to the nearest Block Agriculture Extension Centre (உழவர் மையம்) for NPK, pH, and electrical conductivity testing.\n`;
+  }
+
+  if (analysis.intents.includes('loan_credit')) {
+    ragInfo += `- Credit / Loan Guidance: Kisan Credit Card (KCC) provides institutional credit up to ₹3 lakh at 4% interest rate with prompt repayment. Available via Primary Agricultural Credit Societies (PACCS) or nationalized banks.\n`;
+  }
+
+  if (analysis.intents.includes('livestock') || /மாடு|ஆடு|பால்|livestock|cow|cattle|goat/i.test(query)) {
+    ragInfo += `- Livestock & Dairy Guidance: Cattle feeding requires green fodder (Co-4, Co-5, Azolla), dry straw, and 50g mineral mixture/day to boost milk yield. Provide 70-80L clean drinking water. Prevent mastitis with strict udder hygiene before milking. For veterinary emergencies or severe illness, advise immediately contacting a qualified veterinarian.\n`;
+  }
+
+  if (analysis.intents.includes('natural_remedy') || /organic|இயற்கை|பஞ்சகவ்யா|panchagavya|ஜீவாமிர்தம்/i.test(query)) {
+    ragInfo += `- Organic & Natural Farming Guidance: Panchagavya 3% foliar spray (300 ml in 10 L water) at 15-day intervals boosts immunity and prevents flower drop. Apply vermicompost @ 2 tonnes/acre. Spray 5% Neem Seed Kernel Extract (NSKE) or 3% neem oil for organic pest management.\n`;
+  }
+
+  if (analysis.intents.includes('seeds_and_varieties') && !crop) {
+    ragInfo += `- Seed Treatment Guidance: Treat seeds with Trichoderma viride @ 4g/kg or Pseudomonas fluorescens @ 10g/kg to prevent damping-off and root rot. Coat seeds with Azospirillum & Phosphobacteria biofertilizers @ 200g each per acre.\n`;
+  }
+
+  if (analysis.intents.includes('post_harvest') || /storage|சேமிப்பு|cold storage|தானிய/i.test(query)) {
+    ragInfo += `- Post-Harvest Management: Sun-dry grains to below 10-12% moisture before bagging. Mix dried neem leaves (2% w/w) in gunny bags to deter weevils. Airtight Hermetic Super Grain Bags prevent moisture and pest ingress for over 12 months.\n`;
+  }
+
+  if (analysis.intents.includes('institutions_helplines') || /helpline|ஹெல்ப்லைன்|1800|kcc|tnau|உதவி எண்/i.test(query)) {
+    ragInfo += `- Official Institutions & Helplines: Kisan Call Centre toll-free 1800-180-1551 (6 AM to 10 PM daily in Tamil and Indian languages). TNAU Agritech Portal and local Block Assistant Agricultural Officer (AAO) provide official advisory.\n`;
+  }
+
+  if (analysis.intents.includes('farmer_business') || /uzhavan santhai|உழவர் சந்தை|e-nam|விலைக்கு விற்க|buyer/i.test(query)) {
+    ragInfo += `- Agricultural Marketing & Business: Sell vegetables directly at Uzhavan Santhai with zero middleman commissions. Register on e-NAM (National Agriculture Market) for competitive multi-state bidding. Paddy and pulses can be sold at Government Direct Purchase Centres (DPC) at MSP.\n`;
+  }
+
+  if (analysis.intents.includes('weeds')) {
+    ragInfo += `- Weed Management: Perform manual hand weeding at 20 and 40 days after sowing or apply pre-emergence herbicide under adequate soil moisture to prevent nutrient competition.\n`;
+  }
+
+  if (/மழை வந்தா|மழை பெய்தால்|if it rains/i.test(query)) {
+    ragInfo += `- Rainy Weather Advisory: Ensure clear drainage channels to prevent waterlogging. Avoid spraying any fertilizers or pesticides right before or during rain as they will wash off and waste chemicals.\n`;
   }
 
   return ragInfo;
@@ -339,34 +676,104 @@ async function fetchAgriculturalRAG(analysis: MultiSourceAnalysis, profile: Farm
 // ═══════════════════════════════════════════════════════════════════════════
 // LAYER 4: MULTI-MODEL INTELLIGENCE ENGINE (NVIDIA NIM ➔ GROQ ➔ GEMINI ➔ RAG)
 // ═══════════════════════════════════════════════════════════════════════════
-function buildSystemPrompt(profile: FarmerContext, selectedLang: string): string {
-  const langNames: Record<string, string> = {
-    ta: 'Tamil (தமிழ்)', en: 'English', hi: 'Hindi (हिंदी)',
-    te: 'Telugu (తెలుగు)', kn: 'Kannada (ಕನ್ನಡ)', ml: 'Malayalam (മലയാളം)',
+
+function detectLanguageFromMessage(message: string): 'ta' | 'te' | 'kn' | 'ml' | 'hi' | null {
+  if (/[\u0C80-\u0CFF]/.test(message)) return 'kn'; // Kannada script
+  if (/[\u0C00-\u0C7F]/.test(message)) return 'te'; // Telugu script
+  if (/[\u0D00-\u0D7F]/.test(message)) return 'ml'; // Malayalam script
+  if (/[\u0900-\u097F]/.test(message)) return 'hi'; // Devanagari (Hindi) script
+  if (/[\u0B80-\u0BFF]/.test(message)) return 'ta'; // Tamil script
+  return null;
+}
+
+function isScriptConsistent(text: string | null | undefined, lang: string): boolean {
+  if (!text) return false;
+  const t = text.trim();
+  if (t.length < 3) return false;
+  const hasTamil = /[\u0B80-\u0BFF]/.test(t);
+  const hasKannada = /[\u0C80-\u0CFF]/.test(t);
+  const hasTelugu = /[\u0C00-\u0C7F]/.test(t);
+  const hasMalayalam = /[\u0D00-\u0D7F]/.test(t);
+  const hasHindi = /[\u0900-\u097F]/.test(t);
+
+  if (lang === 'kn') return hasKannada && !hasTamil;
+  if (lang === 'te') return hasTelugu && !hasTamil;
+  if (lang === 'ml') return hasMalayalam && !hasTamil;
+  if (lang === 'hi') return hasHindi && !hasTamil;
+  if (lang === 'ta') return hasTamil && !hasKannada && !hasTelugu && !hasMalayalam;
+  if (lang === 'en') return !hasTamil && !hasKannada && !hasTelugu && !hasMalayalam && !hasHindi;
+  return true;
+}
+
+function buildSystemPrompt(profile: FarmerContext, selectedLang: string, queryCrop: string | null): string {
+  const langConfig: Record<string, { name: string; script: string; instructions: string }> = {
+    ta: {
+      name: 'Tamil (தமிழ்)',
+      script: 'தமிழ் எழுத்துக்கள் (Tamil Script)',
+      instructions: 'நேரடி, எளிய, அக்கறையான உழவர் பேச்சு நடை. உரம், பூச்சி மருந்து, பாசனம், ஏக்கர்/லிட்டர் அளவுகளை துல்லியமாகக் கூறவும். பிற மொழி சொற்களைத் தவிர்க்கவும்.'
+    },
+    te: {
+      name: 'Telugu (తెలుగు)',
+      script: 'తెలుగు లిపి (Telugu Script EXCLUSIVELY)',
+      instructions: 'రైతులకు సులభంగా అర్థమయ్యే సహజమైన, ఆప్యాయమైన వ్యవసాయ సంభాషణ శైలి. ఎరువులు, పురుగు మందులు, నీటి పారుదల, ఎకరా/లీటరు వివరాలు స్పష్టంగా చెప్పండి. ఖచ్చితంగా తమిళం లేదా హిందీ పదాలు వాడవద్దు.'
+    },
+    kn: {
+      name: 'Kannada (ಕನ್ನಡ)',
+      script: 'ಕನ್ನಡ ಲಿಪಿ (Kannada Script EXCLUSIVELY)',
+      instructions: 'ರೈತರಿಗೆ ಸುಲಭವಾಗಿ ಅರ್ಥವಾಗುವ ನೈಸರ್ಗಿಕ, ಸರಳ ಮತ್ತು ಸೌಹಾರ್ದಯುತ ಆಡುಮಾತಿನ ಶೈಲಿ. ರಸಗೊಬ್ಬರ, ಕೀಟನಾಶಕ, ನೀರಾವರಿ, ಎಕರೆ/ಲೀಟರ್ ಪ್ರಮಾಣವನ್ನು ನೇರವಾಗಿ ತಿಳಿಸಿ. ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ತಮಿಳು ಅಥವಾ ಹಿಂದಿ ಪದಗಳನ್ನು ಬಳಸಬೇಡಿ.'
+    },
+    ml: {
+      name: 'Malayalam (മലയാളം)',
+      script: 'മലയാള ലിപി (Malayalam Script EXCLUSIVELY)',
+      instructions: 'കർഷകർക്ക് എളുപ്പത്തിൽ മനസ്സിലാകുന്ന സ്വാഭാവികവും ലളിതവുമായ സംഭാഷണ ശൈലി. വളം, കീടനാശിനി, നനയ്ക്കൽ, ഏക്കർ/ലിറ്റർ അളവുകൾ വ്യക്തമായി പറയുക. യാതൊരു കാരണവശാലും തമിഴ് വാക്കുകൾ കലർത്തരുത്.'
+    },
+    hi: {
+      name: 'Hindi (हिंदी)',
+      script: 'देवनागरी लिपि (Devanagari Script EXCLUSIVELY)',
+      instructions: 'किसान भाइयों के लिए सहज, व्यावहारिक और सम्मानजनक बोलचाल की भाषा। खाद/उर्वरक, कीटनाशक, सिंचाई, एकड़/लीटर की मात्रा स्पष्ट बताएं। किसी भी स्थिति में तमिल शब्द न लिखें।'
+    },
+    en: {
+      name: 'English',
+      script: 'English Alphabet',
+      instructions: 'Direct, clear, practical agricultural extension officer voice. Keep measurements accurate and simple.'
+    }
   };
-  const targetLang = langNames[selectedLang] || 'Tamil (தமிழ்)';
 
-  return `You are UZHAVAN AI (உழவன் AI), a warm, expert human agricultural voice assistant speaking to a farmer on a phone call.
+  const current = langConfig[selectedLang] || langConfig.ta;
 
-AUTHENTICATED FARMER CONTEXT:
-- Name: ${profile.name}
+  return `You are UZHAVAN AI (உழவன் AI), an empathetic, expert agricultural voice assistant on a live phone call with an Indian farmer.
+
+ACTIVE CONVERSATION LANGUAGE: ${current.name}
+MANDATORY SCRIPT: ${current.script}
+LANGUAGE GUIDELINES: ${current.instructions}
+
+AUTHENTICATED FARMER PROFILE:
+- Farmer Name: ${profile.name}
 - Registered Location: ${profile.district}
-- Main Registered Crop: ${profile.crop_type}
+- Registered Profile Crop: ${profile.crop_type}
 - Soil Type: ${profile.soil_type}
 
-MANDATORY RESPONSE LANGUAGE:
-You MUST respond STRICTLY and ONLY in ${targetLang}.
-
-VOICE CALL RESPONSE RULES:
-1. Speak naturally like a knowledgeable rural farming elder on a live phone call.
-2. NEVER mention AI, model, API, backend, system, Groq, Gemini, NVIDIA, or internal logic.
-3. Incorporate provided Live Data (Weather, Market Prices, News, RAG Knowledge) naturally into your response for the specific crop asked.
-4. Preserves all numerical values (prices ₹, temperature °C, humidity %, dosages) EXACTLY without alteration.
-5. If live data is unavailable, clearly state so without inventing numbers or weather.
-6. Provide practical, immediate steps (organic remedies, chemical dosage, prevention techniques).
-7. STRICT LENGTH LIMIT: Respond in exactly 1 or 2 short, direct sentences. No long paragraphs, no conversational filler, and no chain of thought.
-8. NO EMOJIS, NO LISTS, NO BULLET POINTS: This text is read aloud on a telephone call. NEVER output emojis, numbered lists, or bullet points. Speak in natural continuous sentences.
-9. DIRECT ANSWER MANDATE: Begin your response directly with the answer in ${targetLang}. Never output English explanations or meta thinking.`;
+STRICT INSTRUCTIONS FOR ACCURACY AND CONTEXT:
+1. ANSWER THE EXACT QUESTION FIRST:
+   - Provide the direct, specific answer immediately in the very first sentence.
+   - For fertilizer or chemical dosage: state exact quantity (ml/L, g/L, or per acre/hectare) right away.
+   - For soil questions: state the suitable soil texture and drainage requirements immediately.
+   - For weather: state current rain/weather status immediately.
+   - For market: state current mandi rates or benchmark prices immediately.
+2. STRICT TOPIC & CROP ISOLATION:
+   ${queryCrop ? `- The farmer is inquiring SPECIFICALLY about "${queryCrop}". Answer STRICTLY and ONLY for "${queryCrop}".
+   - NEVER mention the farmer's registered profile crop ("${profile.crop_type}") or provide advice meant for "${profile.crop_type}".` : `- The farmer asked a general question with NO specific crop. Do NOT force or assume any crop name (such as "${profile.crop_type}"). Answer the general question directly.`}
+3. EVIDENCE-BASED SCIENTIFIC GROUNDING:
+   - Ground your answer strictly in the provided LIVE RETRIEVED DATA and AGRICULTURAL SCIENTIFIC GROUNDING.
+   - Preserve exact figures: NPK dosages, chemical application rates (ml/L or g/L), market prices, temperatures. NEVER fabricate numbers.
+4. STRICT LANGUAGE CONSISTENCY & NO TAMIL LEAKAGE:
+   - You MUST generate your response EXCLUSIVELY in ${current.name} using ${current.script}.
+   - CRITICAL: When the active language is ${current.name}, NEVER output Tamil script (தமிழ்) or accidental Tamil sentences.
+5. SPOKEN VOICE CALL FORMAT:
+   - Speak in natural, spoken conversational style like an experienced agriculture officer on a live phone call.
+   - STRICT LENGTH: Respond in exactly 1 or 2 concise, clear, and actionable spoken sentences.
+   - NO EMOJIS, NO BULLET POINTS, NO NUMBERED LISTS, NO MARKDOWN HEADERS. This text will be converted to audio via TTS.
+   - Output ONLY the final spoken words in ${current.script}. Never provide thinking, translation notes, or English preamble.`;
 }
 
 async function callMultiModelEngine(
@@ -377,22 +784,22 @@ async function callMultiModelEngine(
   message: string,
   selectedLang: string
 ): Promise<string> {
-  const systemPrompt = buildSystemPrompt(profile, selectedLang);
-  const userPrompt = `Selected Language: ${selectedLang}
-Intents: ${analysis.intents.join(', ')}
-Query Crop: ${analysis.query_crop || profile.crop_type}
-Query Location: ${analysis.query_location || profile.district}
+  const systemPrompt = buildSystemPrompt(profile, selectedLang, analysis.query_crop);
+  const userPrompt = `Selected Spoken Language: ${selectedLang}
+Detected Query Intent: ${analysis.intents.join(', ')}
+Query Crop: ${analysis.query_crop || 'None (General Query)'}
+Location: ${analysis.query_location || profile.district}
 
-LIVE RETRIEVED DATA:
-${liveDataCombined || 'No live API data available.'}
+LIVE RETRIEVED DATA & SCIENTIFIC KNOWLEDGE:
+${liveDataCombined || 'No external live data available.'}
 
-CONVERSATION HISTORY:
-${history || 'New call session.'}
+CONVERSATION CONTEXT:
+${history ? history.slice(-400) : 'New call session.'}
 
-FARMER QUESTION:
+FARMER'S QUESTION:
 "${message}"
 
-INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}. Do NOT write English thinking, do NOT write "We need to", output ONLY the final spoken reply:`;
+INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken sentences. Start speaking immediately:`;
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -402,23 +809,32 @@ INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}.
   const sanitizeCallBotResponse = (raw: string | null | undefined): string | null => {
     if (!raw) return null;
     let t = raw.trim();
-    if (/(?:we need to|the user asks|the user is asking|according to|meaning\s*["']|thinking process|so answer:|let'?s craft|so respond)/i.test(t)) {
-      if (selectedLang === 'ta') {
-        const tamilBlocks = t.match(/[\u0B80-\u0BFF][^\n"]*/g);
-        if (tamilBlocks && tamilBlocks.length > 0) {
-          const valid = tamilBlocks
+
+    // Remove markdown headers, bolding, bullet points, and think tags
+    t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    t = t.replace(/^[#*>\-\d.)\s]+/gm, '').trim();
+    t = t.replace(/[*_~`]/g, '').trim();
+
+    // If English chain-of-thought or meta preamble is present, extract native script blocks
+    if (/(?:we need to|the user asks|the user is asking|according to|meaning\s*["']|thinking process|so answer:|let'?s craft|so respond|here is the response)/i.test(t)) {
+      const scriptRegexes: Record<string, RegExp> = {
+        ta: /[\u0B80-\u0BFF][^\n"]*/g,
+        te: /[\u0C00-\u0C7F][^\n"]*/g,
+        kn: /[\u0C80-\u0CFF][^\n"]*/g,
+        ml: /[\u0D00-\u0D7F][^\n"]*/g,
+        hi: /[\u0900-\u097F][^\n"]*/g,
+      };
+      const reg = scriptRegexes[selectedLang];
+      if (reg) {
+        const blocks = t.match(reg);
+        if (blocks && blocks.length > 0) {
+          const valid = blocks
             .map(b => b.replace(/^[\s"']+|[\s"']+$/g, ''))
             .filter(b => b.length > 8 && !b.includes('meaning') && !b.includes('answer:'));
-          if (valid.length > 1) {
-            return valid[valid.length - 1].slice(0, 200).trim();
-          } else if (valid.length === 1 && !valid[0].includes('கேரட்டுக்கு என்ன உரம்')) {
-            return valid[0].slice(0, 200).trim();
+          if (valid.length > 0) {
+            return valid.slice(0, 2).join(' ').slice(0, 250).trim();
           }
         }
-        if (analysis.intents.includes('fertilizer') && (analysis.query_crop?.toLowerCase().includes('carrot') || profile.crop_type?.toLowerCase().includes('carrot'))) {
-          return "கேரட்டுக்கு ஏக்கருக்கு 20 டன் மட்கிய தொழுவுரம் மற்றும் NPK 50:100:100 கிலோ இடுவது சிறந்தது.";
-        }
-        return null;
       }
     }
     return t;
@@ -440,7 +856,7 @@ INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}.
       const data = await res.json();
       const rawText = data.choices?.[0]?.message?.content?.trim();
       const text = sanitizeCallBotResponse(rawText);
-      if (text && !text.includes('fallback') && text !== '[]') {
+      if (text && isScriptConsistent(text, selectedLang) && !text.includes('fallback') && text !== '[]') {
         console.log('[CallBot Engine] NVIDIA NIM Proxy OK');
         return text;
       }
@@ -492,7 +908,7 @@ INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}.
           const data = await res.json();
           const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
           const text = sanitizeCallBotResponse(rawText);
-          if (text) {
+          if (text && isScriptConsistent(text, selectedLang)) {
             console.log('[CallBot Engine] Gemini OK');
             return text;
           }
@@ -503,49 +919,164 @@ INSTRUCTION: Begin your response IMMEDIATELY with the answer in ${selectedLang}.
 
   // 4. Local RAG Offline Generator (Ensures 100% reliability, no crashes, no hallucinations)
   console.log('[CallBot Engine] Local RAG Generator Fallback');
-  const crop = analysis.query_crop || profile.crop_type || 'Paddy';
-  const loc = analysis.query_location || profile.district || 'Thanjavur';
+  const resolvedCrop = analysis.query_crop;
+  const cropKey = resolvedCrop ? identifyCropDbKey(resolvedCrop) : null;
+  const cropData = cropKey ? OFFLINE_CROP_DATABASE[cropKey] : null;
+  const cropDisplayName = cropData ? (cropData.name[selectedLang] || cropData.name['ta'] || resolvedCrop || 'பயிர்') : 'பயிர்';
+  const loc = analysis.query_location || profile.district || 'உங்கள் பகுதி';
 
   if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer/i.test(message)) {
+    if (!resolvedCrop || !cropData) {
+      const responses: Record<string, string> = {
+        ta: 'எந்த பயிருக்கு உரம் தேவை என்று குறிப்பிட்டால், துல்லியமான NPK உர அளவை உடனடியாக கூறுகிறேன்.',
+        en: 'If you specify which crop you need fertilizer advice for, I will give you the exact NPK dosage immediately.',
+        hi: 'यदि आप बताएंगे कि किस फसल के लिए खाद चाहिए, तो मैं तुरंत सही उर्वरक मात्रा बता दूंगा।',
+      };
+      return responses[selectedLang] || responses['ta'];
+    }
     const responses: Record<string, string> = {
-      ta: `${crop} பயிருக்கு ஹெக்டேருக்கு 40 கிலோ தழைச்சத்து, 80 கிலோ மணிச்சத்து மற்றும் 60 கிலோ சாம்பல் சத்து உரமிட வேண்டும். நிலம் தயாரிக்கும் போது ஏக்கருக்கு 10 டன் மக்கிய தொழு உரம் இடுவது மிக நல்லது. உங்கள் நிலத்தின் மண் வகை என்ன?`,
-      en: `For ${crop}, apply 40:80:60 kg NPK per hectare along with 10 tonnes of well-decomposed farmyard manure. What type of soil do you have?`,
-      hi: `${crop} के लिए 40:80:60 किग्रा एनपीके और 10 टन गोबर की खाद का उपयोग करें। आपकी मिट्टी किस प्रकार की है?`,
+      ta: `${cropDisplayName} பயிருக்கு பரிந்துரைக்கப்படும் உர அளவு: ${cropData.npk}. நிலம் தயாரிக்கும் போது நன்கு மக்கிய தொழுவுரத்தை அடியுரமாக இடவும்.`,
+      en: `For ${cropDisplayName}, the recommended fertilizer dosage is: ${cropData.npk}. Apply well-decomposed farmyard manure during land preparation.`,
+      hi: `${cropDisplayName} के लिए अनुशंसित उर्वरक मात्रा: ${cropData.npk} है। बुवाई से पहले अच्छी तरह सड़ी हुई गोबर की खाद डालें।`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.requires_disease_rag) {
+  if (analysis.requires_disease_rag || analysis.requires_prevention || analysis.requires_natural_remedy || analysis.requires_chemical_remedy) {
+    if (!resolvedCrop || !cropData) {
+      const responses: Record<string, string> = {
+        ta: 'பயிரில் பூச்சி அல்லது நோய் பாதிப்பு என்ன என்பதை குறிப்பிட்டால், உடனடி பாதுகாப்பு முறையை கூறுகிறேன்.',
+        en: 'Please specify which crop and pest symptoms you are observing, and I will recommend the immediate remedy.',
+        hi: 'कृपया बताएं कि किस फसल में कौन से कीट या रोग के लक्षण हैं, ताकि मैं सही उपचार बता सकूं।',
+      };
+      return responses[selectedLang] || responses['ta'];
+    }
     const responses: Record<string, string> = {
-      ta: `${crop} பயிரில் இலைக்கருகல் அல்லது பூஞ்சான நோய் இருந்தால், 1 லிட்டர் தண்ணீருக்கு 2 மில்லி வேப்ப எண்ணெய் அல்லது 1 கிராம் கார்பென்டாசிம் கலந்து மாலை வேளையில் தெளிக்கவும். பாதிப்பு அதிகமாக உள்ளதா?`,
-      en: `For fungal leaf blight in your ${crop}, spray 2ml Neem oil per liter of water, or apply Carbendazim 50 WP at 1g per liter. Is the infection spreading rapidly?`,
-      hi: `${crop} फसल में झुलसा या कवक रोग के लिए, प्रति लीटर पानी में 2 मिली नीम का तेल या 1 ग्राम कार्बेन्डाजिम मिलाकर छिड़काव करें। क्या रोग तेजी से फैल रहा है?`,
+      ta: `${cropDisplayName} பயிரில் பாதிப்புக்கு: இயற்கை முறையில் ${cropData.organicRemedy} தீவிர நோய்க்கட்டுப்பாட்டுக்கு ${cropData.chemicalDosage}.`,
+      en: `For ${cropDisplayName} protection: Organically, ${cropData.organicRemedy} For chemical control, ${cropData.chemicalDosage}.`,
+      hi: `${cropDisplayName} में सुरक्षा के लिए: जैविक रूप से ${cropData.organicRemedy} रासायनिक उपचार के लिए ${cropData.chemicalDosage}.`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('irrigation')) {
+    const responses: Record<string, string> = {
+      ta: `${cropDisplayName} பயிருக்கான பாசன வழிகாட்டுதல்: ${cropData.irrigation}`,
+      en: `Irrigation guidance for ${cropDisplayName}: ${cropData.irrigation}`,
+      hi: `${cropDisplayName} के लिए सिंचाई सलाह: ${cropData.irrigation}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
   if (analysis.requires_market) {
     const responses: Record<string, string> = {
-      ta: `${loc} சந்தையில் ${crop} விலை தற்போது குவிண்டாலுக்கு ₹2,450 வரை விற்பனையாகிறது. உங்கள் விளைபொருளை எப்போது சந்தைக்கு கொண்டு செல்ல திட்டமிட்டுள்ளீர்கள்?`,
-      en: `In ${loc} mandi, the modal price for ${crop} is currently around ₹2,450 per quintal. When are you planning to bring your harvest to market?`,
-      hi: `${loc} मंडी में ${crop} का भाव वर्तमान में लगभग ₹2,450 प्रति क्विंटल है। आप अपनी फसल कब बाजार ले जाने की योजना बना रहे हैं?`,
+      ta: `${loc} சந்தையில் ${cropDisplayName} விலை நிலவரம்: ${cropData.marketBenchmark}. இன்றைய நேரடி மண்டி விலை இணையதளத்தில் புதுப்பிக்கப்படவில்லை.`,
+      en: `Market reference for ${cropDisplayName} in ${loc}: ${cropData.marketBenchmark}. Today's live arrival rate is not updated on the Agmarknet portal.`,
+      hi: `${loc} में ${cropDisplayName} का संदर्भ भाव: ${cropData.marketBenchmark}। आज का ताजा मंडी भाव पोर्टल पर अपडेट नहीं है।`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
   if (analysis.requires_weather) {
     const responses: Record<string, string> = {
-      ta: `${loc} பகுதியில் இன்று 31 டிகிரி வெப்பநிலையும் மிதமான ஈரப்பதமும் நிலவுகிறது. கனமழை எச்சரிக்கை எதுவும் இல்லை. உங்களுக்கு வேறு என்ன உதவி வேண்டும்?`,
-      en: `In ${loc}, the current temperature is 31°C with moderate humidity. No heavy rainfall is expected today. How else can I assist your farming today?`,
-      hi: `${loc} में आज तापमान 31°C और मध्यम आर्द्रता है। भारी बारिश की चेतावनी नहीं है। मैं आपकी और क्या मदद कर सकता हूँ?`,
+      ta: `${loc} பகுதியில் தற்போதைய நேரடி வானிலை முன்னறிவிப்பு தகவல் கிடைக்கவில்லை. உள்ளூர் வானிலை மைய அறிவிப்பை கவனிக்கவும்.`,
+      en: `Live weather forecast for ${loc} is temporarily unavailable. Please check local advisory.`,
+      hi: `${loc} के लिए लाइव मौसम पूर्वानुमान अभी उपलब्ध नहीं है। स्थानीय कृषि सलाह का पालन करें।`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.requires_schemes) {
+    const responses: Record<string, string> = {
+      ta: `விவசாயிகளுக்கு பிஎம்-கிசான் ஆண்டுக்கு ₹6,000 நிதி உதவி, பிரதம மந்திரி பயிர் காப்பீட்டுத் திட்டம் மற்றும் சொட்டுநீர் பாசன மானியம் அரசு வழங்கப்படுகிறது.`,
+      en: `Key government schemes include PM-KISAN (₹6,000/year assistance), PM Fasal Bima Yojana crop insurance, and subsidized drip irrigation.`,
+      hi: `किसानों के लिए मुख्य योजनाएं पीएम-किसान (₹6,000 प्रति वर्ष), फसल बीमा योजना और सब्सिडी वाली ड्रिप सिंचाई हैं।`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('soil')) {
+    const responses: Record<string, string> = {
+      ta: `மண் பரிசோதனை செய்ய நிலத்தில் 8 முதல் 10 இடங்களில் வி வடிவ குழியெடுத்து மண் சேகரித்து அருகிலுள்ள உழவர் மையத்தில் சமர்ப்பிக்கவும்.`,
+      en: `For soil testing, collect V-shaped soil samples from 8-10 points across your field and submit them to the nearest Block Agriculture Centre.`,
+      hi: `मिट्टी परीक्षण के लिए, खेत में 8-10 स्थानों से वी-आकार में नमूने एकत्र करें और निकटतम कृषि कार्यालय में जमा करें।`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('livestock') || /மாடு|ஆடு|பால்|livestock|cow|dairy/i.test(message)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.livestock_dairy;
+    const responses: Record<string, string> = {
+      ta: `${d.summary.ta} ${d.action.ta}`,
+      en: `${d.summary.en} ${d.action.en}`,
+      hi: `${d.summary.hi} ${d.action.hi}`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('seeds_and_varieties') || /விதை நேர்த்தி|seed treatment/i.test(message)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.seed_treatment;
+    const responses: Record<string, string> = {
+      ta: `${d.summary.ta} ${d.action.ta}`,
+      en: `${d.summary.en} ${d.action.en}`,
+      hi: `${d.summary.hi} ${d.action.hi}`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('post_harvest') || /storage|சேமிப்பு/i.test(message)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.post_harvest;
+    const responses: Record<string, string> = {
+      ta: `${d.summary.ta} ${d.action.ta}`,
+      en: `${d.summary.en} ${d.action.en}`,
+      hi: `${d.summary.hi} ${d.action.hi}`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('institutions_helplines') || /helpline|ஹெல்ப்லைன்|1800/i.test(message)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.institutions_helplines;
+    const responses: Record<string, string> = {
+      ta: `${d.summary.ta} ${d.action.ta}`,
+      en: `${d.summary.en} ${d.action.en}`,
+      hi: `${d.summary.hi} ${d.action.hi}`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (analysis.intents.includes('farmer_business') || /uzhavan santhai|உழவர் சந்தை|விற்பனை/i.test(message)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.farmer_business;
+    const responses: Record<string, string> = {
+      ta: `${d.summary.ta} ${d.action.ta}`,
+      en: `${d.summary.en} ${d.action.en}`,
+      hi: `${d.summary.hi} ${d.action.hi}`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (/மழை வந்தா|மழை பெய்தால்|மழை/i.test(message)) {
+    const cropPart = resolvedCrop && cropData ? `${cropDisplayName} ` : '';
+    const responses: Record<string, string> = {
+      ta: `மழை பெய்யும் போது ${cropPart}வயலில் தேங்கும் தண்ணீரை உடனடியாக வடிய வைக்கவும்; மழை நேரத்தில் பூச்சி மருந்தோ உரமோ தெளிக்க வேண்டாம்.`,
+      en: `If it rains, ensure proper drainage in your ${cropPart}field immediately; avoid spraying fertilizers or pesticides during rain.`,
+      hi: `बारिश के समय ${cropPart}खेत में जल निकासी सुनिश्चित करें और बारिश के दौरान कीटनाशक या खाद का छिड़काव न करें।`,
+    };
+    return responses[selectedLang] || responses['ta'];
+  }
+
+  if (resolvedCrop) {
+    const responses: Record<string, string> = {
+      ta: `${cropDisplayName} பயிரிட ஏற்ற பருவம்: ${cropData.sowingTime}. ஏற்ற மண்: ${cropData.soil}. உங்களுக்கு வேறு என்ன வழிகாட்டுதல் தேவை?`,
+      en: `Optimal sowing season for ${cropDisplayName} is ${cropData.sowingTime}, and recommended soil is ${cropData.soil}. How else can I assist you?`,
+      hi: `${cropDisplayName} की बुवाई के लिए उपयुक्त समय: ${cropData.sowingTime} और उपयुक्त मिट्टी: ${cropData.soil} है। आप और क्या जानना चाहते हैं?`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
   const defaultResponses: Record<string, string> = {
-    ta: `வணக்கம் உழவரே, உங்கள் ${crop} பயிருக்கு தேவையான இயற்கை பாதுகாப்பு மற்றும் உர மேலாண்மை வழிகாட்டுதல் என்னிடம் உள்ளது. உங்கள் பயிர் பற்றி வேறு என்ன கேட்க விரும்புகிறீர்கள்?`,
-    en: `Hello farmer, I have detailed crop care and management tips for your ${crop}. What specific guidance do you need for your field today?`,
-    hi: `नमस्ते किसान भाई, आपकी ${crop} फसल के लिए उचित सलाह उपलब्ध है। आप अपनी फसल के बारे में क्या जानना चाहते हैं?`,
+    ta: `வணக்கம் உழவரே, உங்கள் பயிர் பாதுகாப்பு, உரம், வானிலை அல்லது அரசு திட்டங்கள் குறித்து நீங்கள் கேட்கலாம்.`,
+    en: `Hello farmer, you can ask me about crop management, fertilizer dosage, weather forecasts, or government schemes.`,
+    hi: `नमस्ते किसान भाई, आप फसल सुरक्षा, उर्वरक, मौसम या सरकारी योजनाओं के बारे में पूछ सकते हैं।`,
   };
   return defaultResponses[selectedLang] || defaultResponses['ta'];
 }
@@ -599,6 +1130,10 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
   const audioChunksRef = useRef<Blob[]>([]);
   const fullTranscriptRef = useRef<string>('');
   const callStartTimeRef = useRef<string>('');
+  const lastDiscussedCropRef = useRef<string | null>(null);
+  const activeSessionLangRef = useRef<string>('ta');
+  const lastDiscussedTopicRef = useRef<string | null>(null);
+  const lastDiscussedEntityRef = useRef<string | null>(null);
 
   // Hydrate full profile from Firebase / Firestore on mount
   useEffect(() => {
@@ -848,10 +1383,28 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
       tamil: 'ta', english: 'en', hindi: 'hi', telugu: 'te', kannada: 'kn', malayalam: 'ml',
       ta: 'ta', en: 'en', hi: 'hi', te: 'te', kn: 'kn', ml: 'ml',
     };
-    const userLangCode = APP_LANG_MAP[appLanguage || farmerProfile.language || 'tamil'] || 'ta';
+    // Dynamic script detection: if farmer speaks in Kannada, Telugu, Malayalam, Hindi, or Tamil script, prioritize it immediately
+    const detectedScript = detectLanguageFromMessage(message);
+    const userLangCode = detectedScript || activeSessionLangRef.current || APP_LANG_MAP[appLanguage || farmerProfile.language || 'tamil'] || 'ta';
+    activeSessionLangRef.current = userLangCode;
+    console.log('[Language Session Track]: Active =', userLangCode, '(Script Detected =', detectedScript || 'none', ')');
 
     // Step 1: Intelligent Intent Classification & Entity Extraction
-    const analysis = await analyzeQueryIntents(message, conversationHistory, userLangCode, farmerProfile);
+    const analysis = await analyzeQueryIntents(
+      message,
+      conversationHistory,
+      userLangCode,
+      farmerProfile,
+      lastDiscussedCropRef.current,
+      lastDiscussedTopicRef.current,
+      lastDiscussedEntityRef.current
+    );
+    if (analysis.query_crop) {
+      lastDiscussedCropRef.current = analysis.query_crop;
+    }
+    if (analysis.primary_intent) {
+      lastDiscussedTopicRef.current = analysis.primary_intent;
+    }
     console.log('[Router Analysis]', JSON.stringify(analysis));
 
     // Step 2: Parallel Multi-Source Data Retrieval (Weather, Market, News, RAG)
@@ -860,7 +1413,7 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
       dataPromises.push(fetchWeather(analysis.query_location || farmerProfile.district));
     }
     if (analysis.requires_market) {
-      dataPromises.push(fetchMarket(analysis.query_crop || farmerProfile.crop_type, analysis.query_location || farmerProfile.district));
+      dataPromises.push(fetchMarket(analysis.query_crop || (analysis.intents.includes('market') ? farmerProfile.crop_type : null), analysis.query_location || farmerProfile.district));
     }
     if (analysis.requires_news) {
       dataPromises.push(fetchNews(userLangCode, analysis.query_location || farmerProfile.district));
@@ -872,7 +1425,16 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
       analysis.requires_chemical_remedy ||
       analysis.requires_schemes ||
       analysis.intents.includes('fertilizer') ||
-      analysis.intents.includes('soil')
+      analysis.intents.includes('soil') ||
+      analysis.intents.includes('irrigation') ||
+      analysis.intents.includes('crop_recommendation') ||
+      analysis.intents.includes('crop_cultivation') ||
+      analysis.intents.includes('livestock') ||
+      analysis.intents.includes('seeds_and_varieties') ||
+      analysis.intents.includes('post_harvest') ||
+      analysis.intents.includes('institutions_helplines') ||
+      analysis.intents.includes('farmer_business') ||
+      Boolean(analysis.query_crop)
     ) {
       dataPromises.push(fetchAgriculturalRAG(analysis, farmerProfile, message));
     }
@@ -995,6 +1557,9 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
     fullTranscriptRef.current = '';
     audioChunksRef.current = [];
     callStartTimeRef.current = new Date().toISOString();
+    lastDiscussedCropRef.current = null;
+    lastDiscussedTopicRef.current = null;
+    lastDiscussedEntityRef.current = null;
 
     // Prime HTML5 audio immediately in user touch/click gesture to prevent browser autoplay block
     try {
@@ -1070,6 +1635,9 @@ const PhoneCall: React.FC<Props> = ({ onBack, user, t, language: appLanguage }) 
     setCallState('idle');
     setCallDuration(0);
     conversationHistory = '';
+    lastDiscussedCropRef.current = null;
+    lastDiscussedTopicRef.current = null;
+    lastDiscussedEntityRef.current = null;
   };
 
   const getStatusText = () => {
