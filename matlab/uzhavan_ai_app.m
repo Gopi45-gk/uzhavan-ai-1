@@ -1,229 +1,106 @@
 function app = uzhavan_ai_app(varargin)
-    % UZHAVAN_AI_APP Launches the complete Uzhavan AI frontend inside MATLAB Desktop.
+    % UZHAVAN_AI_APP Launches the complete Uzhavan AI application inside MATLAB Desktop.
     %   Runs the exact Uzhavan AI application (Voice Assistant, Multilingual Chat,
-    %   Disease Detection, Mandi Prices, Weather, Advisory) within a native MATLAB
-    %   uifigure using the Chromium-powered uihtml component.
+    %   Disease Detection, Mandi Prices, Weather, Advisory) within MATLAB's native
+    %   Chromium WebWindow with 100% full fidelity and live backend connectivity.
     %
     %   Usage:
-    %       uzhavan_ai_app()              % Auto-detects server and opens in mobile mode
-    %       uzhavan_ai_app('Mode', 'desktop')  % Opens in expanded desktop mode
-    %       uzhavan_ai_app('Port', 3000)   % Custom frontend port (default: 3000 or 4200)
-    %
-    %   Requirements:
-    %       MATLAB R2019b or later (supports uihtml). Tested on R2020a - R2024b+.
+    %       uzhavan_ai_app()                   % Opens in mobile view (480x920)
+    %       uzhavan_ai_app('Mode', 'desktop')  % Opens in wide desktop view (1100x850)
+    %       uzhavan_ai_app('Port', 3000)       % Connect to custom frontend port
 
     % Parse optional parameters
     p = inputParser;
     addParameter(p, 'Mode', 'mobile', @(x) ischar(x) || isstring(x));
-    addParameter(p, 'Port', 0, @isnumeric);
+    addParameter(p, 'Port', 3000, @isnumeric);
     parse(p, varargin{:});
 
     viewMode = lower(char(p.Results.Mode));
-    customPort = p.Results.Port;
+    frontendPort = p.Results.Port;
 
-    % Resolve workspace directories
+    % Resolve paths
     matlabDir = fileparts(mfilename('fullpath'));
     projectRoot = fileparts(matlabDir);
-    distDir = fullfile(projectRoot, 'dist');
 
     fprintf('================================================================================\n');
     fprintf('🌾 Starting Uzhavan AI (உழவன் AI) Desktop Application in MATLAB\n');
     fprintf('================================================================================\n');
 
-    % Step 1: Detect Backend Status (http://localhost:8000)
-    backendActive = checkHttpUrl('http://localhost:8000/api/weather/v2/forecast', 1.5) || ...
-                    checkHttpUrl('http://localhost:8000/docs', 1.5);
-    port8000Conflict = false;
-    if ~backendActive && checkHttpUrl('http://localhost:8000/', 1.0)
-        port8000Conflict = true;
+    % Step 1: Ensure Backend is active on port 8000
+    backendActive = checkHttpUrl('http://localhost:8000/docs', 1.5);
+    if ~backendActive
+        fprintf('🚀 [Backend] Starting FastAPI backend on http://localhost:8000...\n');
+        system(sprintf('cd "%s/backend" && python3 -m uvicorn main:app --port 8000 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
+        pause(1.5);
+        backendActive = checkHttpUrl('http://localhost:8000/docs', 2.0);
     end
 
     if backendActive
-        fprintf('✅ [Backend Check] FastAPI backend is active and responsive on http://localhost:8000\n');
-    elseif port8000Conflict
-        fprintf('⚠️  [Port 8000 Conflict] Port 8000 is occupied by Ubuntu printer service (gutenprint-printer-app).\n');
-        fprintf('   This causes CORS errors because requests hit the printer service instead of FastAPI.\n');
-        fprintf('   👉 Fix: Run this in a terminal to free port 8000 and start FastAPI:\n');
-        fprintf('      sudo snap stop gutenprint-printer-app\n');
-        fprintf('      cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
+        fprintf('✅ [Backend Check] FastAPI backend active and responsive on http://localhost:8000\n');
     else
-        fprintf('⚠️  [Backend Check] Backend not detected on http://localhost:8000.\n');
-        fprintf('   To start backend: cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
+        fprintf('⚠️  [Backend Check] Could not verify http://localhost:8000. Please start in terminal:\n');
+        fprintf('   cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
     end
 
-    % Clean up any old timers from previous runs
-    oldTimers = timerfindall('Name', 'UzhavanWebServerTimer');
-    if ~isempty(oldTimers)
-        try
-            stop(oldTimers);
-            delete(oldTimers);
-        catch
-        end
-    end
-
-    % Step 2: Ensure Frontend Service is active on port 3000
-    frontendActive = checkHttpUrl('http://localhost:3000/', 1.0);
+    % Step 2: Ensure Frontend server is active on port 3000
+    frontendUrl = sprintf('http://localhost:%d', frontendPort);
+    frontendActive = checkHttpUrl([frontendUrl, '/'], 1.0);
     if ~frontendActive
-        fprintf('🚀 [Frontend Notice] Starting Vite frontend server on port 3000...\n');
-        system(sprintf('cd "%s" && npx vite --port 3000 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
-        pause(2);
-        frontendActive = checkHttpUrl('http://localhost:3000/', 2.0);
+        fprintf('🚀 [Frontend] Starting Vite server on %s...\n', frontendUrl);
+        system(sprintf('cd "%s" && npx vite --port %d --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot, frontendPort));
+        pause(2.5);
+        frontendActive = checkHttpUrl([frontendUrl, '/'], 3.0);
     end
 
     if frontendActive
-        fprintf('✅ [Frontend Check] Live frontend server active on http://localhost:3000\n');
+        fprintf('✅ [Frontend Check] Uzhavan AI frontend active on %s\n', frontendUrl);
     else
-        fprintf('⏳ [Frontend Notice] Frontend server initializing...\n');
+        fprintf('⚠️  [Frontend Notice] Server starting on %s...\n', frontendUrl);
     end
 
-    % Load container HTML which hosts full responsive app inside MATLAB uihtml
-    addpath(matlabDir);
-    containerFilePath = fullfile(matlabDir, 'embedded_container.html');
-    fprintf('📱 [Frontend Ready] Embedded container loading: %s\n', containerFilePath);
-
-    % Step 3: Create MATLAB Figure Window
+    % Step 3: Determine Window Geometry
     screenSize = get(0, 'ScreenSize');
     screenWidth = screenSize(3);
     screenHeight = screenSize(4);
 
     if strcmp(viewMode, 'desktop')
-        winWidth = min(1200, screenWidth - 100);
-        winHeight = min(850, screenHeight - 120);
+        winWidth = min(1180, screenWidth - 100);
+        winHeight = min(880, screenHeight - 100);
     else
-        % Default: Premium Mobile Frame (480px width) centered on screen
+        % Mobile view: 480px width, matching Uzhavan AI app-container
         winWidth = 490;
         winHeight = min(920, screenHeight - 80);
     end
 
-    posX = round((screenWidth - winWidth) / 2);
-    posY = round((screenHeight - winHeight) / 2);
+    posX = max(50, round((screenWidth - winWidth) / 2));
+    posY = max(50, round((screenHeight - winHeight) / 2));
 
-    fig = uifigure(...
-        'Name', 'Uzhavan AI (உழவன் AI) — Smart Farmer Assistant', ...
-        'Position', [posX, posY, winWidth, winHeight], ...
-        'Color', [0.945, 0.973, 0.953], ... % Matching Uzhavan AI theme #f1f8f3
-        'AutoResizeChildren', 'off');
+    % Step 4: Launch Native MATLAB Chromium WebWindow
+    win = [];
+    try
+        win = matlab.internal.webwindow(frontendUrl);
+        win.Title = 'Uzhavan AI (உழவன் AI) — Smart Farmer Assistant';
+        win.Position = [posX, posY, winWidth, winHeight];
+        win.setMinSize([360, 580]);
+        win.show();
+        win.bringToFront();
 
-    % Step 4: Top Control & Diagnostic Toolbar (44px height)
-    toolbarHeight = 44;
-    toolPanel = uipanel(fig, ...
-        'Position', [0, winHeight - toolbarHeight, winWidth, toolbarHeight], ...
-        'BackgroundColor', [0.176, 0.663, 0.361], ... % Uzhavan Green #2da95c
-        'BorderType', 'none');
+        app = struct(...
+            'Window', win, ...
+            'Url', frontendUrl, ...
+            'BackendActive', backendActive, ...
+            'Close', @() win.close(), ...
+            'Reload', @() win.executeJS('window.location.reload()'), ...
+            'ExecuteJS', @(js) win.executeJS(js));
 
-    % Header Label
-    uilabel(toolPanel, ...
-        'Position', [12, 10, 180, 24], ...
-        'Text', '🌾 Uzhavan AI', ...
-        'FontName', 'Segoe UI', ...
-        'FontSize', 15, ...
-        'FontWeight', 'bold', ...
-        'FontColor', [1, 1, 1]);
-
-    % Backend Status Indicator
-    if backendActive
-        statusText = '● Backend: Connected';
-        statusColor = [0.85, 1.0, 0.85];
-    elseif port8000Conflict
-        statusText = '⚠️ Port 8000: Printer Conflict';
-        statusColor = [1.0, 0.85, 0.6];
-    else
-        statusText = '○ Backend: Offline (Port 8000)';
-        statusColor = [1.0, 0.9, 0.7];
+        fprintf('✨ [Uzhavan AI App] Rendered in native MATLAB Chromium window successfully!\n');
+        fprintf('💡 Type "app.Close()" or "close(uzhavanApp.Window)" to close the window.\n');
+        fprintf('================================================================================\n');
+    catch ex
+        fprintf('⚠️ Falling back to MATLAB web browser: %s\n', ex.message);
+        web(frontendUrl, '-new');
+        app = struct('Url', frontendUrl, 'BackendActive', backendActive);
     end
-    statusLabel = uilabel(toolPanel, ...
-        'Position', [195, 12, 190, 20], ...
-        'Text', statusText, ...
-        'FontSize', 11, ...
-        'FontColor', statusColor);
-
-    % Reload Button
-    reloadBtn = uibutton(toolPanel, 'push', ...
-        'Position', [winWidth - 190, 8, 80, 28], ...
-        'Text', '🔄 Reload', ...
-        'BackgroundColor', [1, 1, 1], ...
-        'FontColor', [0.1, 0.4, 0.2], ...
-        'FontSize', 11, ...
-        'FontWeight', 'bold');
-
-    % External Browser Button
-    browserBtn = uibutton(toolPanel, 'push', ...
-        'Position', [winWidth - 100, 8, 90, 28], ...
-        'Text', '🌐 Browser', ...
-        'BackgroundColor', [1, 1, 1], ...
-        'FontColor', [0.1, 0.4, 0.2], ...
-        'FontSize', 11, ...
-        'FontWeight', 'bold');
-
-    % Step 5: Embedded uihtml Web Component
-    htmlComp = uihtml(fig, ...
-        'Position', [0, 0, winWidth, winHeight - toolbarHeight], ...
-        'HTMLSource', containerFilePath);
-
-    % Configure callbacks
-    reloadBtn.ButtonPushedFcn = @(~, ~) reloadApp(htmlComp, containerFilePath);
-    browserBtn.ButtonPushedFcn = @(~, ~) web('http://localhost:3000', '-browser');
-
-    % Handle window resize to keep layout responsive
-    fig.SizeChangedFcn = @(~, ~) resizeComponents(fig, toolPanel, htmlComp, reloadBtn, browserBtn, toolbarHeight);
-
-    % Handle clean shutdown when window closes
-    fig.CloseRequestFcn = @(~, ~) closeApp(fig);
-
-    % Bidirectional MATLAB Event Listener from frontend
-    htmlComp.HTMLEventReceivedFcn = @(~, event) onFrontendEvent(event, fig);
-
-    % Return structured handle
-    app = struct(...
-        'Figure', fig, ...
-        'HTMLComponent', htmlComp, ...
-        'ContainerFile', containerFilePath, ...
-        'StatusLabel', statusLabel);
-
-    fprintf('✨ [Uzhavan AI App] Rendered inside MATLAB window successfully.\n');
-    fprintf('================================================================================\n');
-end
-
-function reloadApp(htmlComp, filePath)
-    fprintf('🔄 [Uzhavan AI] Reloading frontend...\n');
-    htmlComp.HTMLSource = '';
-    drawnow;
-    htmlComp.HTMLSource = filePath;
-end
-
-function closeApp(fig)
-    % Clean up any background timers if present
-    oldTimers = timerfindall('Name', 'UzhavanWebServerTimer');
-    if ~isempty(oldTimers)
-        try
-            stop(oldTimers);
-            delete(oldTimers);
-        catch
-        end
-    end
-    delete(fig);
-    fprintf('👋 [Uzhavan AI] App closed.\n');
-end
-
-function resizeComponents(fig, toolPanel, htmlComp, reloadBtn, browserBtn, tbHeight)
-    pos = fig.Position;
-    w = pos(3);
-    h = pos(4);
-    toolPanel.Position = [0, h - tbHeight, w, tbHeight];
-    htmlComp.Position = [0, 0, w, h - tbHeight];
-    reloadBtn.Position = [max(10, w - 190), 8, 80, 28];
-    browserBtn.Position = [max(95, w - 100), 8, 90, 28];
-end
-
-function onFrontendEvent(event, fig)
-    eventName = char(event.HTMLEventName);
-    eventData = event.HTMLEventData;
-    fprintf('📩 [MATLAB Received Event from Uzhavan AI]: %s\n', eventName);
-    if ~isempty(eventData)
-        disp(eventData);
-    end
-    % Store in figure UserData for access in MATLAB workspace
-    fig.UserData = struct('LastEvent', eventName, 'LastData', eventData, 'Timestamp', now);
 end
 
 function ok = checkHttpUrl(urlStr, timeoutSec)

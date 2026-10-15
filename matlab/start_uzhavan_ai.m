@@ -40,9 +40,9 @@ try
     
     fprintf('\n🎉 Uzhavan AI is now running inside your MATLAB Desktop window!\n');
     fprintf('💡 Useful MATLAB Commands:\n');
-    fprintf('   - uzhavanApp.Figure           : Access figure window handle\n');
-    fprintf('   - uzhavanApp.HTMLComponent    : Access embedded Chromium component\n');
-    fprintf('   - close(uzhavanApp.Figure)    : Close the app\n');
+    fprintf('   - uzhavanApp.Window           : Access native Chromium window handle\n');
+    fprintf('   - uzhavanApp.Reload()         : Reload the application\n');
+    fprintf('   - uzhavanApp.Close()          : Close the window\n');
     fprintf('================================================================================\n');
 catch ME
     fprintf('\n❌ Error launching Uzhavan AI in MATLAB:\n%s\n', ME.message);
