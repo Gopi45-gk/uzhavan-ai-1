@@ -61,21 +61,25 @@ function app = uzhavan_ai_app(varargin)
         end
     end
 
-    % Step 2: Ensure compiled dist frontend exists and is on MATLAB path
-    if ~isfile(fullfile(distDir, 'index.html'))
-        fprintf('📦 [Build Notice] Compiled distribution not found. Building with npm run build...\n');
-        system(sprintf('cd "%s" && npm run build', projectRoot));
+    % Step 2: Ensure Frontend Service is active on port 3000
+    frontendActive = checkHttpUrl('http://localhost:3000/', 1.0);
+    if ~frontendActive
+        fprintf('🚀 [Frontend Notice] Starting Vite frontend server on port 3000...\n');
+        system(sprintf('cd "%s" && npx vite --port 3000 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
+        pause(2);
+        frontendActive = checkHttpUrl('http://localhost:3000/', 2.0);
     end
 
-    if ~isfile(fullfile(distDir, 'index.html'))
-        error('UzhavanAI:NoFrontend', ...
-            'Could not locate or build Uzhavan AI frontend bundle in %s', distDir);
+    if frontendActive
+        fprintf('✅ [Frontend Check] Live frontend server active on http://localhost:3000\n');
+    else
+        fprintf('⏳ [Frontend Notice] Frontend server initializing...\n');
     end
 
-    % Add dist directory to MATLAB search path so uihtml resolves index.html and assets
-    addpath(distDir);
-    htmlFilePath = fullfile(distDir, 'index.html');
-    fprintf('📱 [Frontend Ready] Embedded uihtml loading: %s\n', htmlFilePath);
+    % Load container HTML which hosts full responsive app inside MATLAB uihtml
+    addpath(matlabDir);
+    containerFilePath = fullfile(matlabDir, 'embedded_container.html');
+    fprintf('📱 [Frontend Ready] Embedded container loading: %s\n', containerFilePath);
 
     % Step 3: Create MATLAB Figure Window
     screenSize = get(0, 'ScreenSize');
@@ -154,17 +158,11 @@ function app = uzhavan_ai_app(varargin)
     % Step 5: Embedded uihtml Web Component
     htmlComp = uihtml(fig, ...
         'Position', [0, 0, winWidth, winHeight - toolbarHeight], ...
-        'HTMLSource', htmlFilePath);
-
-    % Configure browser target (prefer live dev server if active, otherwise file)
-    browserTarget = htmlFilePath;
-    if checkHttpUrl('http://localhost:3000/', 0.5)
-        browserTarget = 'http://localhost:3000/';
-    end
+        'HTMLSource', containerFilePath);
 
     % Configure callbacks
-    reloadBtn.ButtonPushedFcn = @(~, ~) reloadApp(htmlComp, htmlFilePath);
-    browserBtn.ButtonPushedFcn = @(~, ~) web(browserTarget, '-browser');
+    reloadBtn.ButtonPushedFcn = @(~, ~) reloadApp(htmlComp, containerFilePath);
+    browserBtn.ButtonPushedFcn = @(~, ~) web('http://localhost:3000', '-browser');
 
     % Handle window resize to keep layout responsive
     fig.SizeChangedFcn = @(~, ~) resizeComponents(fig, toolPanel, htmlComp, reloadBtn, browserBtn, toolbarHeight);
@@ -179,7 +177,7 @@ function app = uzhavan_ai_app(varargin)
     app = struct(...
         'Figure', fig, ...
         'HTMLComponent', htmlComp, ...
-        'HTMLFile', htmlFilePath, ...
+        'ContainerFile', containerFilePath, ...
         'StatusLabel', statusLabel);
 
     fprintf('✨ [Uzhavan AI App] Rendered inside MATLAB window successfully.\n');

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Uzhavan AI - MATLAB Container</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #f1f8f3;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #uzhavan_frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+    #offline_notice {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      color: #0b3d2e;
+    }
+    #offline_notice h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    #offline_notice p {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 16px;
+    }
+    #retry_btn {
+      background-color: #2da95c;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <iframe 
+    id="uzhavan_frame" 
+    src="http://localhost:3000" 
+    allow="geolocation; microphone; camera; midi; encrypted-media; autoplay">
+  </iframe>
+
+  <div id="offline_notice">
+    <h2>🌾 Uzhavan AI Service Connecting...</h2>
+    <p>Waiting for the frontend service on http://localhost:3000</p>
+    <button id="retry_btn" onclick="retryConnection()">🔄 Reconnect</button>
+  </div>
+
+  <script>
+    var frame = document.getElementById('uzhavan_frame');
+    var notice = document.getElementById('offline_notice');
+
+    function retryConnection() {
+      notice.style.display = 'none';
+      frame.style.display = 'block';
+      frame.src = 'http://localhost:3000?' + Date.now();
+    }
+
+    // Two-way MATLAB Bridge
+    function setup(htmlComponent) {
+      window.matlabComponent = htmlComponent;
+      console.log('🌾 [Uzhavan AI Container] Connected to MATLAB uihtml');
+
+      // Forward MATLAB data events into the iframe
+      htmlComponent.addEventListener('DataChanged', function() {
+        if (frame && frame.contentWindow) {
+          try {
+            frame.contentWindow.postMessage({
+              type: 'matlab_data',
+              data: htmlComponent.Data
+            }, '*');
+          } catch(e) {}
+        }
+      });
+
+      // Listen for events sent from iframe back to MATLAB
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'uzhavan_to_matlab') {
+          if (typeof htmlComponent.sendEventToMATLAB === 'function') {
+            htmlComponent.sendEventToMATLAB(event.data.name, event.data.payload || {});
+          }
+        }
+      });
+
+      // Notify MATLAB that container is initialized
+      if (typeof htmlComponent.sendEventToMATLAB === 'function') {
+        htmlComponent.sendEventToMATLAB('UzhavanContainerReady', { 
+          container: 'ready', 
+          timestamp: Date.now() 
+        });
+      }
+    }
+  </script>
+</body>
+</html>
