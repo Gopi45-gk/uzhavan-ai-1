@@ -26,15 +26,20 @@ function app = uzhavan_ai_app(varargin)
     fprintf('🌾 Starting Uzhavan AI (உழவன் AI) Desktop Application in MATLAB\n');
     fprintf('================================================================================\n');
 
-    % Step 1: Ensure Backend is active on port 8000
     % Step 1: Ensure Backend is active (Port 8005 or 8000)
     backendActive = checkHttpUrl('http://localhost:8005/docs', 1.0) || ...
                     checkHttpUrl('http://localhost:8000/docs', 1.0);
     if ~backendActive
         fprintf('🚀 [Backend] Starting FastAPI backend on http://localhost:8005...\n');
         system(sprintf('cd "%s/backend" && python3 -m uvicorn main:app --port 8005 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
-        pause(1.5);
-        backendActive = checkHttpUrl('http://localhost:8005/docs', 2.0);
+        % Wait up to 8 seconds for backend to start
+        for attempt = 1:8
+            pause(1);
+            if checkHttpUrl('http://localhost:8005/docs', 1.0)
+                backendActive = true;
+                break;
+            end
+        end
     end
 
     if backendActive
@@ -47,16 +52,26 @@ function app = uzhavan_ai_app(varargin)
     frontendUrl = sprintf('http://localhost:%d', frontendPort);
     frontendActive = checkHttpUrl([frontendUrl, '/'], 1.0);
     if ~frontendActive
-        fprintf('🚀 [Frontend] Starting Vite server on %s...\n', frontendUrl);
+        fprintf('🚀 [Frontend] Starting Vite dev server on %s...\n', frontendUrl);
         system(sprintf('cd "%s" && npx vite --port %d --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot, frontendPort));
-        pause(2.5);
-        frontendActive = checkHttpUrl([frontendUrl, '/'], 3.0);
+        % Wait up to 15 seconds for Vite to start (it can be slow on first run)
+        for attempt = 1:15
+            pause(1);
+            if checkHttpUrl([frontendUrl, '/'], 1.0)
+                frontendActive = true;
+                break;
+            end
+            if mod(attempt, 5) == 0
+                fprintf('   ⏳ [Frontend] Waiting for Vite server... (%d seconds)\n', attempt);
+            end
+        end
     end
 
     if frontendActive
         fprintf('✅ [Frontend Check] Uzhavan AI frontend active on %s\n', frontendUrl);
     else
-        fprintf('⚠️  [Frontend Notice] Server starting on %s...\n', frontendUrl);
+        fprintf('⚠️  [Frontend Warning] Vite server not responding yet on %s\n', frontendUrl);
+        fprintf('   The window will auto-refresh once the server is ready.\n');
     end
 
     % Step 3: Determine Window Geometry
@@ -93,6 +108,23 @@ function app = uzhavan_ai_app(varargin)
             'Close', @() win.close(), ...
             'Reload', @() win.executeJS('window.location.reload()'), ...
             'ExecuteJS', @(js) win.executeJS(js));
+
+        % If frontend wasn't ready yet, wait and auto-reload once it's up
+        if ~frontendActive
+            fprintf('⏳ [Frontend] Waiting for Vite server to become ready...\n');
+            for retry = 1:20
+                pause(1);
+                if checkHttpUrl([frontendUrl, '/'], 1.0)
+                    fprintf('✅ [Frontend] Vite server is now ready! Reloading window...\n');
+                    pause(0.5);
+                    try
+                        win.executeJS('window.location.reload()');
+                    catch
+                    end
+                    break;
+                end
+            end
+        end
 
         fprintf('✨ [Uzhavan AI App] Rendered in native MATLAB Chromium window successfully!\n');
         fprintf('💡 Type "app.Close()" or "close(uzhavanApp.Window)" to close the window.\n');
