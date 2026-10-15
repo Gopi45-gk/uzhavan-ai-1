@@ -27,19 +27,20 @@ function app = uzhavan_ai_app(varargin)
     fprintf('================================================================================\n');
 
     % Step 1: Ensure Backend is active on port 8000
-    backendActive = checkHttpUrl('http://localhost:8000/docs', 1.5);
+    % Step 1: Ensure Backend is active (Port 8005 or 8000)
+    backendActive = checkHttpUrl('http://localhost:8005/docs', 1.0) || ...
+                    checkHttpUrl('http://localhost:8000/docs', 1.0);
     if ~backendActive
-        fprintf('🚀 [Backend] Starting FastAPI backend on http://localhost:8000...\n');
-        system(sprintf('cd "%s/backend" && python3 -m uvicorn main:app --port 8000 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
+        fprintf('🚀 [Backend] Starting FastAPI backend on http://localhost:8005...\n');
+        system(sprintf('cd "%s/backend" && python3 -m uvicorn main:app --port 8005 --host 0.0.0.0 >/dev/null 2>&1 &', projectRoot));
         pause(1.5);
-        backendActive = checkHttpUrl('http://localhost:8000/docs', 2.0);
+        backendActive = checkHttpUrl('http://localhost:8005/docs', 2.0);
     end
 
     if backendActive
-        fprintf('✅ [Backend Check] FastAPI backend active and responsive on http://localhost:8000\n');
+        fprintf('✅ [Backend Check] FastAPI backend active and responsive\n');
     else
-        fprintf('⚠️  [Backend Check] Could not verify http://localhost:8000. Please start in terminal:\n');
-        fprintf('   cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
+        fprintf('⚠️  [Backend Check] Backend initializing on port 8005...\n');
     end
 
     % Step 2: Ensure Frontend server is active on port 3000

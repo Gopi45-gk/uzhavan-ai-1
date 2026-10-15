@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:8000',
+          target: process.env.VITE_BACKEND_TARGET || 'http://127.0.0.1:8005',
           changeOrigin: true,
           secure: false,
           ws: true,  // Enable WebSocket proxy
