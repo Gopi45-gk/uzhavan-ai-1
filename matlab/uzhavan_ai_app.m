@@ -33,11 +33,22 @@ function app = uzhavan_ai_app(varargin)
     % Step 1: Detect Backend Status (http://localhost:8000)
     backendActive = checkHttpUrl('http://localhost:8000/api/weather/v2/forecast', 1.5) || ...
                     checkHttpUrl('http://localhost:8000/docs', 1.5);
+    port8000Conflict = false;
+    if ~backendActive && checkHttpUrl('http://localhost:8000/', 1.0)
+        port8000Conflict = true;
+    end
+
     if backendActive
         fprintf('✅ [Backend Check] FastAPI backend is active and responsive on http://localhost:8000\n');
+    elseif port8000Conflict
+        fprintf('⚠️  [Port 8000 Conflict] Port 8000 is occupied by Ubuntu printer service (gutenprint-printer-app).\n');
+        fprintf('   This causes CORS errors because requests hit the printer service instead of FastAPI.\n');
+        fprintf('   👉 Fix: Run this in a terminal to free port 8000 and start FastAPI:\n');
+        fprintf('      sudo snap stop gutenprint-printer-app\n');
+        fprintf('      cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
     else
         fprintf('⚠️  [Backend Check] Backend not detected on http://localhost:8000.\n');
-        fprintf('   To start backend: cd backend && source venv/bin/activate && uvicorn main:app --port 8000\n');
+        fprintf('   To start backend: cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
     end
 
     % Step 2: Determine Frontend URL
@@ -123,12 +134,15 @@ function app = uzhavan_ai_app(varargin)
     if backendActive
         statusText = '● Backend: Connected';
         statusColor = [0.85, 1.0, 0.85];
+    elseif port8000Conflict
+        statusText = '⚠️ Port 8000: Printer Conflict';
+        statusColor = [1.0, 0.85, 0.6];
     else
         statusText = '○ Backend: Offline (Port 8000)';
         statusColor = [1.0, 0.9, 0.7];
     end
     statusLabel = uilabel(toolPanel, ...
-        'Position', [195, 12, 170, 20], ...
+        'Position', [195, 12, 190, 20], ...
         'Text', statusText, ...
         'FontSize', 11, ...
         'FontColor', statusColor);
