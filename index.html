@@ -42,6 +42,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil+UI:wght@400;500;600;700;800;900&family=Noto+Sans+Telugu:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&family=Noto+Sans+Kannada:wght@400;500;600;700;800;900&family=Noto+Sans+Malayalam:wght@400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
+  <!-- MATLAB uihtml Embedded Bridge (Active when hosted inside MATLAB Desktop) -->
+  <script>
+    function setup(htmlComponent) {
+      window.matlabComponent = htmlComponent;
+      console.log('🌾 [Uzhavan AI] Connected to MATLAB host component');
+      htmlComponent.addEventListener('DataChanged', function(event) {
+        try {
+          if (htmlComponent.Data) {
+            window.dispatchEvent(new CustomEvent('matlabData', { detail: htmlComponent.Data }));
+          }
+        } catch (e) {
+          console.warn('Error handling MATLAB DataChanged:', e);
+        }
+      });
+      window.sendToMatlab = function(eventName, data) {
+        if (window.matlabComponent && typeof window.matlabComponent.sendEventToMATLAB === 'function') {
+          window.matlabComponent.sendEventToMATLAB(eventName, data);
+        }
+      };
+      // Notify MATLAB that frontend is ready
+      if (typeof htmlComponent.sendEventToMATLAB === 'function') {
+        htmlComponent.sendEventToMATLAB('UzhavanFrontendReady', { status: 'ready', timestamp: Date.now() });
+      }
+    }
+  </script>
+
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
