@@ -27,13 +27,14 @@ app = FastAPI(
     version="2.1.0"
 )
 
-# Enable CORS for frontend interaction
+# Enable CORS for frontend interaction (including MATLAB's embedded Chromium on 127.0.0.1:4200)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 NVIDIA_API_KEY = os.getenv("VITE_NVIDIA_API_KEY", "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")

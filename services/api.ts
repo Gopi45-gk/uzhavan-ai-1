@@ -4,14 +4,33 @@
  */
 
 export const getApiBaseUrl = (): string => {
-    let url = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
-        const host = window.location.hostname;
-        if (host !== 'localhost' && host !== '127.0.0.1' && (url.includes('localhost') || url.includes('127.0.0.1'))) {
+    const envUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+    // If an explicit API URL is configured, use it
+    if (envUrl) {
+        // But if we're on a remote host and the env points to localhost, clear it
+        if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+            const host = window.location.hostname;
+            if (host !== 'localhost' && host !== '127.0.0.1' && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
+                return '';
+            }
+        }
+        return envUrl;
+    }
+
+    // No explicit API URL configured — auto-detect based on environment
+    if (typeof window !== 'undefined' && window.location) {
+        const port = window.location.port;
+        // If running via Vite dev server (port 3000), use relative paths (Vite proxy handles /api)
+        if (port === '3000') {
             return '';
         }
+        // If running inside MATLAB's embedded Chromium (port 4200) or any other non-Vite origin,
+        // target the FastAPI backend directly on port 8005 (fallback to 8000)
+        return 'http://localhost:8005';
     }
-    return url;
+
+    return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
