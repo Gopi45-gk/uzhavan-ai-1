@@ -25,8 +25,12 @@ classdef UzhavanAI < handle
         function launch(obj, varargin)
             % LAUNCH Starts the Uzhavan AI UI inside MATLAB.
             obj.AppHandle = uzhavan_ai_app(varargin{:});
-            if ~isempty(obj.AppHandle) && isfield(obj.AppHandle, 'FrontendUrl')
-                obj.FrontendUrl = obj.AppHandle.FrontendUrl;
+            if ~isempty(obj.AppHandle)
+                if isfield(obj.AppHandle, 'HTMLFile')
+                    obj.FrontendUrl = obj.AppHandle.HTMLFile;
+                elseif isfield(obj.AppHandle, 'FrontendUrl')
+                    obj.FrontendUrl = obj.AppHandle.FrontendUrl;
+                end
             end
         end
 

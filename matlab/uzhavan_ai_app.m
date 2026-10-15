@@ -51,45 +51,31 @@ function app = uzhavan_ai_app(varargin)
         fprintf('   To start backend: cd "%s/backend" && python3 -m uvicorn main:app --port 8000\n', projectRoot);
     end
 
-    % Step 2: Determine Frontend URL
-    frontendUrl = '';
-    webServer = [];
-
-    if customPort > 0
-        testUrl = sprintf('http://localhost:%d/', customPort);
-        if checkHttpUrl(testUrl, 1.5)
-            frontendUrl = testUrl;
+    % Clean up any old timers from previous runs
+    oldTimers = timerfindall('Name', 'UzhavanWebServerTimer');
+    if ~isempty(oldTimers)
+        try
+            stop(oldTimers);
+            delete(oldTimers);
+        catch
         end
     end
 
-    % Check if Vite Dev Server is active (http://localhost:3000)
-    if isempty(frontendUrl) && checkHttpUrl('http://localhost:3000/', 1.2)
-        frontendUrl = 'http://localhost:3000/';
-        fprintf('🚀 [Frontend Check] Connected to live Vite dev server at: %s\n', frontendUrl);
+    % Step 2: Ensure compiled dist frontend exists and is on MATLAB path
+    if ~isfile(fullfile(distDir, 'index.html'))
+        fprintf('📦 [Build Notice] Compiled distribution not found. Building with npm run build...\n');
+        system(sprintf('cd "%s" && npm run build', projectRoot));
     end
 
-    % If no dev server, host the compiled dist folder using MATLAB's built-in SimpleWebServer
-    if isempty(frontendUrl)
-        if ~isfile(fullfile(distDir, 'index.html'))
-            fprintf('📦 [Build Notice] Compiled distribution not found. Building with npm run build...\n');
-            system(sprintf('cd "%s" && npm run build', projectRoot));
-        end
-
-        if isfile(fullfile(distDir, 'index.html'))
-            try
-                webServer = SimpleWebServer(distDir, 4200);
-                webServer.start();
-                frontendUrl = sprintf('http://127.0.0.1:%d/index.html', webServer.Port);
-            catch err
-                warning('Could not start internal SimpleWebServer: %s', err.message);
-                % Fallback to direct file path
-                frontendUrl = fullfile(distDir, 'index.html');
-            end
-        else
-            error('UzhavanAI:NoFrontend', ...
-                'Could not locate or build Uzhavan AI frontend bundle in %s', distDir);
-        end
+    if ~isfile(fullfile(distDir, 'index.html'))
+        error('UzhavanAI:NoFrontend', ...
+            'Could not locate or build Uzhavan AI frontend bundle in %s', distDir);
     end
+
+    % Add dist directory to MATLAB search path so uihtml resolves index.html and assets
+    addpath(distDir);
+    htmlFilePath = fullfile(distDir, 'index.html');
+    fprintf('📱 [Frontend Ready] Embedded uihtml loading: %s\n', htmlFilePath);
 
     % Step 3: Create MATLAB Figure Window
     screenSize = get(0, 'ScreenSize');
@@ -168,17 +154,23 @@ function app = uzhavan_ai_app(varargin)
     % Step 5: Embedded uihtml Web Component
     htmlComp = uihtml(fig, ...
         'Position', [0, 0, winWidth, winHeight - toolbarHeight], ...
-        'HTMLSource', frontendUrl);
+        'HTMLSource', htmlFilePath);
+
+    % Configure browser target (prefer live dev server if active, otherwise file)
+    browserTarget = htmlFilePath;
+    if checkHttpUrl('http://localhost:3000/', 0.5)
+        browserTarget = 'http://localhost:3000/';
+    end
 
     % Configure callbacks
-    reloadBtn.ButtonPushedFcn = @(~, ~) reloadApp(htmlComp, frontendUrl);
-    browserBtn.ButtonPushedFcn = @(~, ~) web(frontendUrl, '-browser');
+    reloadBtn.ButtonPushedFcn = @(~, ~) reloadApp(htmlComp, htmlFilePath);
+    browserBtn.ButtonPushedFcn = @(~, ~) web(browserTarget, '-browser');
 
     % Handle window resize to keep layout responsive
     fig.SizeChangedFcn = @(~, ~) resizeComponents(fig, toolPanel, htmlComp, reloadBtn, browserBtn, toolbarHeight);
 
-    % Handle clean shutdown of internal server when window closes
-    fig.CloseRequestFcn = @(~, ~) closeApp(fig, webServer);
+    % Handle clean shutdown when window closes
+    fig.CloseRequestFcn = @(~, ~) closeApp(fig);
 
     % Bidirectional MATLAB Event Listener from frontend
     htmlComp.HTMLEventReceivedFcn = @(~, event) onFrontendEvent(event, fig);
@@ -187,25 +179,27 @@ function app = uzhavan_ai_app(varargin)
     app = struct(...
         'Figure', fig, ...
         'HTMLComponent', htmlComp, ...
-        'FrontendUrl', frontendUrl, ...
-        'WebServer', webServer, ...
+        'HTMLFile', htmlFilePath, ...
         'StatusLabel', statusLabel);
 
     fprintf('✨ [Uzhavan AI App] Rendered inside MATLAB window successfully.\n');
     fprintf('================================================================================\n');
 end
 
-function reloadApp(htmlComp, url)
+function reloadApp(htmlComp, filePath)
     fprintf('🔄 [Uzhavan AI] Reloading frontend...\n');
     htmlComp.HTMLSource = '';
     drawnow;
-    htmlComp.HTMLSource = url;
+    htmlComp.HTMLSource = filePath;
 end
 
-function closeApp(fig, webServer)
-    if ~isempty(webServer) && isvalid(webServer)
+function closeApp(fig)
+    % Clean up any background timers if present
+    oldTimers = timerfindall('Name', 'UzhavanWebServerTimer');
+    if ~isempty(oldTimers)
         try
-            webServer.stop();
+            stop(oldTimers);
+            delete(oldTimers);
         catch
         end
     end

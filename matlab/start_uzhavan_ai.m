@@ -16,6 +16,16 @@ fprintf('=======================================================================
 matlabFolder = fileparts(mfilename('fullpath'));
 addpath(matlabFolder);
 
+% Clean up any lingering background timers
+oldTimers = timerfindall('Name', 'UzhavanWebServerTimer');
+if ~isempty(oldTimers)
+    try
+        stop(oldTimers);
+        delete(oldTimers);
+    catch
+    end
+end
+
 % Check MATLAB version compatibility
 verInfo = ver('MATLAB');
 verYear = sscanf(verInfo.Release, '(%*c%d%*c)');
