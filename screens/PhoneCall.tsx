@@ -355,7 +355,8 @@ async function analyzeQueryIntents(
   const isIrrigation = /irrigation|பாசனம்|சொட்டு நீர்|நீர் பாய்ச்ச|தண்ணீர் பாய்ச்ச|watering|drip irrigation|sprinkler|தண்ணீர் விட|சிஞ்சாயி|నీరు|నీటిపారుదల|తడి|ನೀರು|ನೀರಾವರಿ|ಹನಿ ನೀರಾವರಿ|വെള്ളം|നനയ്ക്കൽ|ജലസೇചനം|पानी|सिंचाई|ड्रिप/i.test(text);
   const isSoilTesting = /மண் பரிசோதனை|மண் ஆய்வு|soil test|soil health|மாதிரி எடுக்க|மாதிரி சேகரிக்க|నేల పరీక్ష|మట్టి పరీక్ష|ಮಣ್ಣು ಪರೀಕ್ಷೆ|മണ്ണ് പരിശോധന|मिट्टी परीक्षण/i.test(text);
   const isSoil = (isSoilTesting || /மண்|மண் வகை|மணல்|கரிசல் மண்|வண்டல் மண்|செம்மண்|நிலம்|soil\b|ph\b|mitti\b|నేల|మట్టి|మట్టి రకం|ಮಣ್ಣು|ಮಣ್ಣಿನ ವಿಧ|ನೆಲ|മണ്ണ്|മണ്ണിന്റെ|നിലം|मिट्टी|मृदा|भूमि/i.test(text)) && !isFertilizer;
-  const isDisease = (/disease|நோய்|blight|rot|spot|wilt|fungus|virus|symptom|அறிகுறி|பாதிப்பு|காயுது|புழு|வண்டு|பூச்சி|அழுகல்|சுருட்டை|infection|pest\b|attack|తెగులు|పురుగు|రోగం|మచ్చ|కుళ్ళు|ರೋಗ|ಕೀಟ|ಹುಳು|ಕೊಳೆರೋಗ|ಬೂದಿರೋಗ|രോഗം|കീടം|പുഴു|ചീയൽ|വാട്ടം|कीट|रोग|झुलसा|सड़न|इल्ली/i.test(text) || (/குறைபாடு/i.test(text) && !isFertilizer)) && !isPostHarvest;
+  const isDisease = (/disease|நோய்|blight|rot|spot|wilt|fungus|virus|symptom|அறிகுறி|பாதிப்பு|தாக்குதல்|பழ ஈ|ஈக்கள்|ஈ\b|அசுவினி|செம்பேன்|தத்துப்பூச்சி|வெட்டுக்கிளி|காயுது|புழு|வண்டு|பூச்சி|அழுகல்|சுருட்டை|infection|pest\b|attack|తెగులు|పురుగు|రోగం|మచ్చ|కుళ్ళు|ರೋಗ|ಕೀಟ|ಹುಳು|ಕೊಳೆರೋಗ|ಬೂದಿರೋಗ|രോഗം|കീടം|പുഴു|ചീയൽ|വാട്ടം|कीट|रोग|झुलसा|सड़न|इल्ली/i.test(text) || (/குறைபாடு/i.test(text) && !isFertilizer)) && !isPostHarvest;
+  const isMachinery = /machinery|tractor|tiller|harvester|smam|chc|டிராக்டர்|இயந்திர|பவர் டில்லர்|அறுவடை இயந்திரம்|యంత్రాలు|ಟ್ರ್ಯಾಕ್ಟರ್|ട്രാക്ടർ/i.test(text);
   const isChemical = /chemical|pesticide|fungicide|மருந்து|தெளிக்க|spray\b|dose\b|மருந்தடிக்க|பூச்சிக்கொல்லி|మందు|స్ప్రే|పిచికారీ|పురుగుమందు|ಔಷಧ|ಸಿಂಪಡಣೆ|ಕೀಟನಾಶಕ|മരുന്ന്|തളിക്കാൻ|കീടനാശിനി|दवा|दवाई|छिड़काव|कीटनाशक/i.test(text) && !isFertilizer;
   const isPrevention = /prevention|தடுப்பது|தடுக்க|control|வராமல்|avoid|protect|முன்னெச்சரிக்கை|నివారణ|ತಡೆಗಟ್ಟುವಿಕೆ|തടയാൻ|रोकथाम/i.test(text) && !isPostHarvest;
   const isNatural = /natural|organic|இயற்கை|மூலிகை|வேப்ப|வேப்பண்ணெய்|neem|home remedy|பஞ்சகவ்யா|panchagavya|ஜீவாமிர்தம்|மண்புழு|சாணம்|సేంద్రీయ|సహజ|సಾವಯವ|ಜೈವಿಕ|ജൈവ|जैविक/i.test(text);
@@ -394,6 +395,7 @@ async function analyzeQueryIntents(
   if (isMarket) detectedIntents.push('market');
   if (isSchemes) detectedIntents.push('government_schemes');
   if (isLivestock) detectedIntents.push('livestock');
+  if (isMachinery) detectedIntents.push('machinery_tools');
   if (isLoan) detectedIntents.push('loan_credit');
   if (isInstitutions) detectedIntents.push('institutions_helplines');
   if (isNews) detectedIntents.push('news');
@@ -922,15 +924,20 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
   const resolvedCrop = analysis.query_crop;
   const cropKey = resolvedCrop ? identifyCropDbKey(resolvedCrop) : null;
   const cropData = cropKey ? OFFLINE_CROP_DATABASE[cropKey] : null;
-  const cropDisplayName = cropData ? (cropData.name[selectedLang] || cropData.name['ta'] || resolvedCrop || 'பயிர்') : 'பயிர்';
+  const defaultCropWords: Record<string, string> = { ta: 'பயிர்', te: 'పంట', kn: 'ಬೆಳೆ', ml: 'വിള', hi: 'फसल', en: 'crop' };
+  const defaultCropTerm = defaultCropWords[selectedLang] || defaultCropWords['ta'];
+  const cropDisplayName = cropData ? (cropData.name[selectedLang] || cropData.name['en'] || resolvedCrop || defaultCropTerm) : defaultCropTerm;
   const loc = analysis.query_location || profile.district || 'உங்கள் பகுதி';
 
-  if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer/i.test(message)) {
+  if (analysis.intents.includes('fertilizer') || /உரம்|fertilizer|npk|dap|urea|ಎరువు|ಗೊಬ್ಬರ|വളം|खाद/i.test(message)) {
     if (!resolvedCrop || !cropData) {
       const responses: Record<string, string> = {
         ta: 'எந்த பயிருக்கு உரம் தேவை என்று குறிப்பிட்டால், துல்லியமான NPK உர அளவை உடனடியாக கூறுகிறேன்.',
         en: 'If you specify which crop you need fertilizer advice for, I will give you the exact NPK dosage immediately.',
         hi: 'यदि आप बताएंगे कि किस फसल के लिए खाद चाहिए, तो मैं तुरंत सही उर्वरक मात्रा बता दूंगा।',
+        te: 'ఏ పంటకు ఎరువులు కావాలో చెబితే, ఖచ్చితమైన NPK ఎరువుల మోతాదును వెంటనే చెబుతాను.',
+        kn: 'ಯಾವ ಬೆಳೆಗೆ ಗೊಬ್ಬರ ಬೇಕು ಎಂದು ತಿಳಿಸಿದರೆ, ನಿಖರವಾದ NPK ಗೊಬ್ಬರದ ಪ್ರಮಾಣವನ್ನು ತಕ್ಷಣ ತಿಳಿಸುತ್ತೇನೆ.',
+        ml: 'ഏത് വിളയ്ക്കാണ് വളം വേണ്ടതെന്ന് വ്യക്തമാക്കിയാൽ, കൃത്യമായ NPK വളപ്രയോഗം ഉടൻ പറയാം.',
       };
       return responses[selectedLang] || responses['ta'];
     }
@@ -938,6 +945,9 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
       ta: `${cropDisplayName} பயிருக்கு பரிந்துரைக்கப்படும் உர அளவு: ${cropData.npk}. நிலம் தயாரிக்கும் போது நன்கு மக்கிய தொழுவுரத்தை அடியுரமாக இடவும்.`,
       en: `For ${cropDisplayName}, the recommended fertilizer dosage is: ${cropData.npk}. Apply well-decomposed farmyard manure during land preparation.`,
       hi: `${cropDisplayName} के लिए अनुशंसित उर्वरक मात्रा: ${cropData.npk} है। बुवाई से पहले अच्छी तरह सड़ी हुई गोबर की खाद डालें।`,
+      te: `${cropDisplayName} పంటకు సిఫార్సు చేసిన ఎరువుల మోతాదు: ${cropData.npk}. నేల తయారీ సమయంలో బాగా కుళ్లిన పశువుల ఎరువును వేయండి.`,
+      kn: `${cropDisplayName} ಬೆಳೆಗೆ ಶಿಫಾರಸು ಮಾಡಿದ ರಸಗೊಬ್ಬರ ಪ್ರಮಾಣ: ${cropData.npk}. ಜಮೀನು ಸಿದ್ಧತೆ ವೇಳೆ ಚೆನ್ನಾಗಿ ಕೊಳೆತ ಕೊಟ್ಟಿಗೆ ಗೊಬ್ಬರವನ್ನು ಹಾಕಿ.`,
+      ml: `${cropDisplayName} വിളയ്ക്ക് ശുപാർശ ചെയ്യുന്ന വളപ്രയോഗം: ${cropData.npk}. നിലമൊരുക്കുമ്പോൾ നന്നായി അഴുകിയ കാലിവളം അടിവളമായി ചേർക്കുക.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
@@ -948,6 +958,9 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
         ta: 'பயிரில் பூச்சி அல்லது நோய் பாதிப்பு என்ன என்பதை குறிப்பிட்டால், உடனடி பாதுகாப்பு முறையை கூறுகிறேன்.',
         en: 'Please specify which crop and pest symptoms you are observing, and I will recommend the immediate remedy.',
         hi: 'कृपया बताएं कि किस फसल में कौन से कीट या रोग के लक्षण हैं, ताकि मैं सही उपचार बता सकूं।',
+        te: 'పంటలో ఎలాంటి చీడపీడలు లేదా తెగులు లక్షణాలు ఉన్నాయో చెబితే, తగిన నివారణ మార్గాన్ని వెంటనే చెబుతాను.',
+        kn: 'ಬೆಳೆಯಲ್ಲಿ ಯಾವ ಕೀಟ ಅಥವಾ ರೋಗದ ಲಕ್ಷಣಗಳಿವೆ ಎಂದು ತಿಳಿಸಿದರೆ, ಸೂಕ್ತ ರಕ್ಷಣಾ ವಿಧಾನವನ್ನು ತಕ್ಷಣ ತಿಳಿಸುತ್ತೇನೆ.',
+        ml: 'വിളയിൽ എന്ത് കീടബാധയോ രോഗലക്ഷണങ്ങളോ ആണെന്ന് വ്യക്തമാക്കിയാൽ ഉടനടി പ്രതിവിധി പറയാം.',
       };
       return responses[selectedLang] || responses['ta'];
     }
@@ -955,24 +968,33 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
       ta: `${cropDisplayName} பயிரில் பாதிப்புக்கு: இயற்கை முறையில் ${cropData.organicRemedy} தீவிர நோய்க்கட்டுப்பாட்டுக்கு ${cropData.chemicalDosage}.`,
       en: `For ${cropDisplayName} protection: Organically, ${cropData.organicRemedy} For chemical control, ${cropData.chemicalDosage}.`,
       hi: `${cropDisplayName} में सुरक्षा के लिए: जैविक रूप से ${cropData.organicRemedy} रासायनिक उपचार के लिए ${cropData.chemicalDosage}.`,
+      te: `${cropDisplayName} పంట రక్షణకు: సేంద్రీయంగా ${cropData.organicRemedy} రసాయన నియంత్రణకు ${cropData.chemicalDosage}.`,
+      kn: `${cropDisplayName} ಬೆಳೆ ರಕ್ಷಣೆಗೆ: ಸಾವಯವ ರೀತಿಯಲ್ಲಿ ${cropData.organicRemedy} ರಾಸಾಯನಿಕ ನಿಯಂತ್ರಣಕ್ಕೆ ${cropData.chemicalDosage}.`,
+      ml: `${cropDisplayName} വിള സംരക്ഷണത്തിന്: ജൈവരീതിയിൽ ${cropData.organicRemedy} രാസകീടനിയന്ത്രണത്തിന് ${cropData.chemicalDosage}.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
   if (analysis.intents.includes('irrigation')) {
     const responses: Record<string, string> = {
-      ta: `${cropDisplayName} பயிருக்கான பாசன வழிகாட்டுதல்: ${cropData.irrigation}`,
-      en: `Irrigation guidance for ${cropDisplayName}: ${cropData.irrigation}`,
-      hi: `${cropDisplayName} के लिए सिंचाई सलाह: ${cropData.irrigation}`,
+      ta: `${cropDisplayName} பயிருக்கான பாசன வழிகாட்டுதல்: ${cropData ? cropData.irrigation : 'மிதமான பாசனம் தேவை'}.`,
+      en: `Irrigation guidance for ${cropDisplayName}: ${cropData ? cropData.irrigation : 'Maintain moderate irrigation'}.`,
+      hi: `${cropDisplayName} के लिए सिंचाई सलाह: ${cropData ? cropData.irrigation : 'मध्यम सिंचाई बनाए रखें'}।`,
+      te: `${cropDisplayName} పంటకు నీటిపారుదల సలహా: ${cropData ? cropData.irrigation : 'మితమైన నీటిపారుదల ఇవ్వండి'}.`,
+      kn: `${cropDisplayName} ಬೆಳೆಗೆ ನೀರಾವರಿ ಮಾರ್ಗದರ್ಶನ: ${cropData ? cropData.irrigation : 'ಮಿತವಾದ ನೀರಾವರಿ ನೀಡಿ'}.`,
+      ml: `${cropDisplayName} വിളയ്ക്കുള്ള ജലസേചന നിർദ്ദേശങ്ങൾ: ${cropData ? cropData.irrigation : 'മിതമായ നനവ് നൽകുക'}.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
   if (analysis.requires_market) {
     const responses: Record<string, string> = {
-      ta: `${loc} சந்தையில் ${cropDisplayName} விலை நிலவரம்: ${cropData.marketBenchmark}. இன்றைய நேரடி மண்டி விலை இணையதளத்தில் புதுப்பிக்கப்படவில்லை.`,
-      en: `Market reference for ${cropDisplayName} in ${loc}: ${cropData.marketBenchmark}. Today's live arrival rate is not updated on the Agmarknet portal.`,
-      hi: `${loc} में ${cropDisplayName} का संदर्भ भाव: ${cropData.marketBenchmark}। आज का ताजा मंडी भाव पोर्टल पर अपडेट नहीं है।`,
+      ta: `${loc} சந்தையில் ${cropDisplayName} விலை நிலவரம்: ${cropData ? cropData.marketBenchmark : 'சந்தை விலை விவரம் புதுப்பிக்கப்படுகிறது'}. இன்றைய நேரடி மண்டி விலை இணையதளத்தில் புதுப்பிக்கப்படவில்லை.`,
+      en: `Market reference for ${cropDisplayName} in ${loc}: ${cropData ? cropData.marketBenchmark : 'Market reference updating'}. Today's live arrival rate is not updated on the Agmarknet portal.`,
+      hi: `${loc} में ${cropDisplayName} का संदर्भ भाव: ${cropData ? cropData.marketBenchmark : 'मंडी भाव अपडेट हो रहा है'}। आज का ताजा मंडी भाव पोर्टल पर अपडेट नहीं है।`,
+      te: `${loc} లో ${cropDisplayName} మార్కెట్ ధర: ${cropData ? cropData.marketBenchmark : 'మార్కెట్ సమాచారం అందుబాటులో లేదు'}. నేటి తాజా ధర ఇంకా పోర్టల్‌లో నమోదు కాలేదు.`,
+      kn: `${loc} ನಲ್ಲಿ ${cropDisplayName} ಮಾರುಕಟ್ಟೆ ಉಲ್ಲೇಖ ದರ: ${cropData ? cropData.marketBenchmark : 'ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ ಲಭ್ಯವಿಲ್ಲ'}. ಇಂದಿನ ನೇರ ಮಂಡಿ ದರ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ನವೀಕರಣಗೊಂಡಿಲ್ಲ.`,
+      ml: `${loc} ൽ ${cropDisplayName} വിപണി വില: ${cropData ? cropData.marketBenchmark : 'വിപണി വിവരം ലഭ്യമായിട്ടില്ല'}. ഇന്നത്തെ തത്സമയ വില പോർട്ടലിൽ അപ്‌ഡേറ്റ് ചെയ്തിട്ടില്ല.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
@@ -982,6 +1004,9 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
       ta: `${loc} பகுதியில் தற்போதைய நேரடி வானிலை முன்னறிவிப்பு தகவல் கிடைக்கவில்லை. உள்ளூர் வானிலை மைய அறிவிப்பை கவனிக்கவும்.`,
       en: `Live weather forecast for ${loc} is temporarily unavailable. Please check local advisory.`,
       hi: `${loc} के लिए लाइव मौसम पूर्वानुमान अभी उपलब्ध नहीं है। स्थानीय कृषि सलाह का पालन करें।`,
+      te: `${loc} లో ప్రస్తుత లైవ్ వాతావరణ సమాచారం అందుబాటులో లేదు. స్థానిక వాతావరణ సూచనలను గమనించండి.`,
+      kn: `${loc} ನಲ್ಲಿ ಪ್ರಸ್ತುತ ಲೈವ್ ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ ಲಭ್ಯವಿಲ್ಲ. ಸ್ಥಳೀಯ ಹವಾಮಾನ ಕೇಂದ್ರದ ಪ್ರಕಟಣೆ ಗಮನಿಸಿ.`,
+      ml: `${loc} പ്രദേശത്തെ കാലാവസ്ഥാ മുന്നറിയിപ്പ് ഇപ്പോൾ ലഭ്യമല്ല. പ്രാദേശിക കാലാവസ്ഥാ അറിയിപ്പുകൾ ശ്രദ്ധിക്കുക.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
@@ -991,6 +1016,9 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
       ta: `விவசாயிகளுக்கு பிஎம்-கிசான் ஆண்டுக்கு ₹6,000 நிதி உதவி, பிரதம மந்திரி பயிர் காப்பீட்டுத் திட்டம் மற்றும் சொட்டுநீர் பாசன மானியம் அரசு வழங்கப்படுகிறது.`,
       en: `Key government schemes include PM-KISAN (₹6,000/year assistance), PM Fasal Bima Yojana crop insurance, and subsidized drip irrigation.`,
       hi: `किसानों के लिए मुख्य योजनाएं पीएम-किसान (₹6,000 प्रति वर्ष), फसल बीमा योजना और सब्सिडी वाली ड्रिप सिंचाई हैं।`,
+      te: `రైతులకు పీఎం-కిసాన్ కింద ఏడాదికి ₹6,000 ఆర్థిక సాయం, పంటల బీమా పథకం మరియు బిందు సేద్యం రాయితీని ప్రభుత్వం అందిస్తోంది.`,
+      kn: `ರೈತರಿಗೆ ಪಿಎಂ-ಕಿಸಾನ್ ವಾರ್ಷಿಕ ₹6,000 ಧನಸಹಾಯ, ಪ್ರಧಾನಮಂತ್ರಿ ಫಸಲ್ ಬಿಮಾ ಯೋಜನೆ ಮತ್ತು ಹನಿ ನೀರಾವರಿ ಸಬ್ಸಿಡಿ ಸರ್ಕಾರದಿಂದ ಲಭ್ಯವಿದೆ.`,
+      ml: `കർഷകർക്ക് പിഎം-കിസാൻ വഴി വർഷത്തിൽ ₹6,000 ധനസഹായം, വിള ഇൻഷുറൻസ് പദ്ധതി, തുള്ളിനന സബ്‌സിഡി എന്നിവ സർക്കാർ നൽകുന്നുണ്ട്.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
@@ -1000,75 +1028,99 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
       ta: `மண் பரிசோதனை செய்ய நிலத்தில் 8 முதல் 10 இடங்களில் வி வடிவ குழியெடுத்து மண் சேகரித்து அருகிலுள்ள உழவர் மையத்தில் சமர்ப்பிக்கவும்.`,
       en: `For soil testing, collect V-shaped soil samples from 8-10 points across your field and submit them to the nearest Block Agriculture Centre.`,
       hi: `मिट्टी परीक्षण के लिए, खेत में 8-10 स्थानों से वी-आकार में नमूने एकत्र करें और निकटतम कृषि कार्यालय में जमा करें।`,
+      te: `నేల పరీక్ష కోసం పొలంలో 8 నుండి 10 చోట్ల 'V' ఆకారంలో మట్టి నమూనా తీసి సమీప రైతు సేవా కేంద్రంలో ఇవ్వండి.`,
+      kn: `ಮಣ್ಣು ಪರೀಕ್ಷೆಗಾಗಿ ಜಮೀನಿನಲ್ಲಿ 8 ರಿಂದ 10 ಕಡೆ 'V' ಆಕಾರದಲ್ಲಿ ಮಣ್ಣಿನ ಮಾದರಿ ಸಂಗ್ರಹಿಸಿ ಹತ್ತಿರದ ರೈತ ಸಂಪರ್ಕ ಕೇಂದ್ರಕ್ಕೆ ನೀಡಿ.`,
+      ml: `മണ്ണ് പരിശോധനയ്ക്കായി പാടത്ത് 8 മുതൽ 10 ഇടങ്ങളിൽ 'V' ആകൃതിയിൽ മണ്ണെടുത്ത് അടുത്തുള്ള കൃഷിഭവനിൽ നൽകുക.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.intents.includes('livestock') || /மாடு|ஆடு|பால்|livestock|cow|dairy/i.test(message)) {
+  if (analysis.intents.includes('livestock') || /மாடு|ஆடு|பால்|livestock|cow|dairy|పాడి|ಹಸು|പശു/i.test(message)) {
     const d = OFFLINE_DOMAIN_KNOWLEDGE.livestock_dairy;
     const responses: Record<string, string> = {
       ta: `${d.summary.ta} ${d.action.ta}`,
       en: `${d.summary.en} ${d.action.en}`,
       hi: `${d.summary.hi} ${d.action.hi}`,
+      te: `${d.summary.te} ${d.action.te}`,
+      kn: `${d.summary.kn} ${d.action.kn}`,
+      ml: `${d.summary.ml} ${d.action.ml}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.intents.includes('seeds_and_varieties') || /விதை நேர்த்தி|seed treatment/i.test(message)) {
+  if (analysis.intents.includes('seeds_and_varieties') || /விதை நேர்த்தி|seed treatment|విత్తన|ಬೀಜ/i.test(message)) {
     const d = OFFLINE_DOMAIN_KNOWLEDGE.seed_treatment;
     const responses: Record<string, string> = {
       ta: `${d.summary.ta} ${d.action.ta}`,
       en: `${d.summary.en} ${d.action.en}`,
       hi: `${d.summary.hi} ${d.action.hi}`,
+      te: `${d.summary.te} ${d.action.te}`,
+      kn: `${d.summary.kn} ${d.action.kn}`,
+      ml: `${d.summary.ml} ${d.action.ml}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.intents.includes('post_harvest') || /storage|சேமிப்பு/i.test(message)) {
+  if (analysis.intents.includes('post_harvest') || /storage|சேமிப்பு|నిల్వ|ಸಂಗ್ರಹ|സംഭരണം/i.test(message)) {
     const d = OFFLINE_DOMAIN_KNOWLEDGE.post_harvest;
     const responses: Record<string, string> = {
       ta: `${d.summary.ta} ${d.action.ta}`,
       en: `${d.summary.en} ${d.action.en}`,
       hi: `${d.summary.hi} ${d.action.hi}`,
+      te: `${d.summary.te} ${d.action.te}`,
+      kn: `${d.summary.kn} ${d.action.kn}`,
+      ml: `${d.summary.ml} ${d.action.ml}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.intents.includes('institutions_helplines') || /helpline|ஹெல்ப்லைன்|1800/i.test(message)) {
+  if (analysis.intents.includes('institutions_helplines') || /helpline|ஹெல்ப்லைன்|1800|సహాయ/i.test(message)) {
     const d = OFFLINE_DOMAIN_KNOWLEDGE.institutions_helplines;
     const responses: Record<string, string> = {
       ta: `${d.summary.ta} ${d.action.ta}`,
       en: `${d.summary.en} ${d.action.en}`,
       hi: `${d.summary.hi} ${d.action.hi}`,
+      te: `${d.summary.te} ${d.action.te}`,
+      kn: `${d.summary.kn} ${d.action.kn}`,
+      ml: `${d.summary.ml} ${d.action.ml}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (analysis.intents.includes('farmer_business') || /uzhavan santhai|உழவர் சந்தை|விற்பனை/i.test(message)) {
+  if (analysis.intents.includes('farmer_business') || /uzhavan santhai|உழவர் சந்தை|விற்பனை|రైతు బజార్|ಸಂತೆ/i.test(message)) {
     const d = OFFLINE_DOMAIN_KNOWLEDGE.farmer_business;
     const responses: Record<string, string> = {
       ta: `${d.summary.ta} ${d.action.ta}`,
       en: `${d.summary.en} ${d.action.en}`,
       hi: `${d.summary.hi} ${d.action.hi}`,
+      te: `${d.summary.te} ${d.action.te}`,
+      kn: `${d.summary.kn} ${d.action.kn}`,
+      ml: `${d.summary.ml} ${d.action.ml}`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (/மழை வந்தா|மழை பெய்தால்|மழை/i.test(message)) {
+  if (/மழை வந்தா|மழை பெய்தால்|மழை|వర్షం|ಮಳೆ|മഴ|बारिश/i.test(message)) {
     const cropPart = resolvedCrop && cropData ? `${cropDisplayName} ` : '';
     const responses: Record<string, string> = {
       ta: `மழை பெய்யும் போது ${cropPart}வயலில் தேங்கும் தண்ணீரை உடனடியாக வடிய வைக்கவும்; மழை நேரத்தில் பூச்சி மருந்தோ உரமோ தெளிக்க வேண்டாம்.`,
       en: `If it rains, ensure proper drainage in your ${cropPart}field immediately; avoid spraying fertilizers or pesticides during rain.`,
       hi: `बारिश के समय ${cropPart}खेत में जल निकासी सुनिश्चित करें और बारिश के दौरान कीटनाशक या खाद का छिड़काव न करें।`,
+      te: `వర్షం పడుతున్నప్పుడు ${cropPart}పొలంలో నీరు నిలవకుండా మురుగు కాలువలను సరిచేయండి; వర్ష సమయంలో ఎరువులు లేదా పురుగుమందులు చల్లవద్దు.`,
+      kn: `ಮಳೆ ಬರುವಾಗ ${cropPart}ಜಮೀನಿನಲ್ಲಿ ನೀರು ನಿಲ್ಲದಂತೆ ತಕ್ಷಣ ಬಸಿದು ಹೋಗಲು ಕಾಲುವೆ ಮಾಡಿ; ಮಳೆ ಸಮಯದಲ್ಲಿ ರಸಗೊಬ್ಬರ ಅಥವಾ ಕೀಟನಾಶಕ ಸಿಂಪಡಿಸಬೇಡಿ.`,
+      ml: `മഴയുള്ളപ്പോൾ ${cropPart}തോട്ടത്തിൽ വെള്ളക്കെട്ട് ഒഴിവാക്കാൻ ഡ്രെയിനേജ് ഉറപ്പാക്കുക; മഴ സമയത്ത് വളമോ കീടനാശിനിയോ പ്രയോഗിക്കരുത്.`,
     };
     return responses[selectedLang] || responses['ta'];
   }
 
-  if (resolvedCrop) {
+  if (resolvedCrop && cropData) {
     const responses: Record<string, string> = {
       ta: `${cropDisplayName} பயிரிட ஏற்ற பருவம்: ${cropData.sowingTime}. ஏற்ற மண்: ${cropData.soil}. உங்களுக்கு வேறு என்ன வழிகாட்டுதல் தேவை?`,
       en: `Optimal sowing season for ${cropDisplayName} is ${cropData.sowingTime}, and recommended soil is ${cropData.soil}. How else can I assist you?`,
       hi: `${cropDisplayName} की बुवाई के लिए उपयुक्त समय: ${cropData.sowingTime} और उपयुक्त मिट्टी: ${cropData.soil} है। आप और क्या जानना चाहते हैं?`,
+      te: `${cropDisplayName} పంటకు అనుకూలమైన విత్తే కాలం: ${cropData.sowingTime}. అనువైన నేల: ${cropData.soil}. ఇంకా ఏ సమాచారం కావాలి?`,
+      kn: `${cropDisplayName} ಬಿತ್ತನೆಗೆ ಸೂಕ್ತ ಸಮಯ: ${cropData.sowingTime}. ಸೂಕ್ತವಾದ ಮಣ್ಣು: ${cropData.soil}. ನಿಮಗೆ ಇನ್ನಾವ ಮಾಹಿತಿ ಬೇಕು?`,
+      ml: `${cropDisplayName} കൃഷിക്ക് അനുയോജ്യമായ സമയം: ${cropData.sowingTime}. മണ്ണ്: ${cropData.soil}. നിങ്ങൾക്ക് മറ്റെന്തെങ്കിലും അറിയണമോ?`,
     };
     return responses[selectedLang] || responses['ta'];
   }
@@ -1077,6 +1129,9 @@ INSTRUCTION: Speak the direct answer in ${selectedLang} in 1-2 natural spoken se
     ta: `வணக்கம் உழவரே, உங்கள் பயிர் பாதுகாப்பு, உரம், வானிலை அல்லது அரசு திட்டங்கள் குறித்து நீங்கள் கேட்கலாம்.`,
     en: `Hello farmer, you can ask me about crop management, fertilizer dosage, weather forecasts, or government schemes.`,
     hi: `नमस्ते किसान भाई, आप फसल सुरक्षा, उर्वरक, मौसम या सरकारी योजनाओं के बारे में पूछ सकते हैं।`,
+    te: `నమస్కారం రైతు సోదరా, మీ పంట సంరక్షణ, ఎరువులు, వాతావరణం లేదా ప్రభుత్వ పథకాల గురించి నన్ను అడగవచ్చు.`,
+    kn: `ನಮಸ್ಕಾರ ರೈತ ಬಾಂಧವರೇ, ನಿಮ್ಮ ಬೆಳೆ ಸಂರಕ್ಷಣೆ, ಗೊಬ್ಬರ, ಹವಾಮಾನ ಅಥವಾ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳ ಕುರಿತು ನೀವು ಕೇಳಬಹುದು.`,
+    ml: `നമസ്കാരം കർഷക സുഹൃത്തേ, നിങ്ങളുടെ വിള സംരക്ഷണം, വളം, കാലാവസ്ഥ അല്ലെങ്കിൽ സർക്കാർ പദ്ധതികളെക്കുറിച്ച് ചോദിക്കാം.`,
   };
   return defaultResponses[selectedLang] || defaultResponses['ta'];
 }

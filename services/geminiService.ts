@@ -1,7 +1,7 @@
 import { GoogleGenAI, GenerateContentResponse, Type, Modality } from "@google/genai";
 import { buildFarmerContextPrompt, buildEnrichedContextPrompt, storeRecentDisease, getStoredFarmerProfile, fetchLiveWeatherForContext, fetchLiveMarketForContext, fetchLiveNewsForContext } from "./farmerContextService";
 import { getStrictSystemPrompt } from "./promptConfig";
-import { analyzePlantDiseaseOffline, getOfflineAgriculturalResponse } from "./offlineIntelligenceService";
+import { analyzePlantDiseaseOffline, getOfflineAgriculturalResponse, identifyCropKey, buildAgronomicRAGContext, OFFLINE_CROP_DATABASE } from "./offlineIntelligenceService";
 import { getApiBaseUrl } from "./api";
 
 // Dual-key system: try primary, fallback to voice key
@@ -70,6 +70,40 @@ TONE
 export const sanitizeFarmerResponse = (text: string, language: string = 'english'): string => {
   if (!text || typeof text !== 'string') return '';
   let cleaned = text.trim();
+
+  // Strip <think> tags, markdown headers, and formatting
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  cleaned = cleaned.replace(/^[#*>\-\d.)\s]+/gm, '').trim();
+  cleaned = cleaned.replace(/[*_~`]/g, '').trim();
+
+  // Strip English meta-commentary / thinking process
+  if (/(?:we need to answer|the user asks|the user is asking|according to (?:the )?instructions|meaning\s*["']|thinking process|so answer:|so respond|let'?s craft)/i.test(cleaned)) {
+    const scriptRegexes: Record<string, RegExp> = {
+      ta: /[\u0B80-\u0BFF][^\n"]*/g,
+      te: /[\u0C00-\u0C7F][^\n"]*/g,
+      kn: /[\u0C80-\u0CFF][^\n"]*/g,
+      ml: /[\u0D00-\u0D7F][^\n"]*/g,
+      hi: /[\u0900-\u097F][^\n"]*/g,
+    };
+    const langKey = language?.toLowerCase().slice(0, 2) || 'en';
+    const reg = scriptRegexes[langKey];
+    if (reg) {
+      const blocks = cleaned.match(reg);
+      if (blocks && blocks.length > 0) {
+        const valid = blocks.map(b => b.trim()).filter(b => b.length > 8 && !b.includes('meaning') && !b.includes('answer:'));
+        if (valid.length > 0) {
+          cleaned = valid.slice(0, 2).join(' ').trim();
+        }
+      }
+    }
+  }
+
+  // Cross-language guard: Prevent Tamil leakage in non-Tamil active language
+  const langKey = language?.toLowerCase().slice(0, 2) || 'en';
+  const hasTamil = /[\u0B80-\u0BFF]/.test(cleaned);
+  if (['kn', 'te', 'ml', 'hi'].includes(langKey) && hasTamil) {
+    return getOfflineAgriculturalResponse(cleaned || 'general', undefined, language);
+  }
 
   // Strip markdown code fences like ```json ... ``` or ``` ... ```
   cleaned = cleaned.replace(/^```(?:json)?\s*/gi, '').replace(/\s*```$/gi, '').trim();
@@ -522,33 +556,18 @@ export const getFarmerChatResponse = async (message: string, language: string = 
   const registeredCrop = profile.crop_type || 'Paddy';
   const state = profile.state || 'Tamil Nadu';
 
-  // ── 1. MULTILINGUAL CROP EXTRACTION FROM MESSAGE OR PROFILE ──
+  // ── 1. COMPREHENSIVE 24-CROP EXTRACTION & DOMAIN DECOUPLING ──
   const textLower = message.toLowerCase();
-  const CROP_MAP: Record<string, string> = {
-    'உருளைக்கிழங்கு': 'Potato', 'உருளை': 'Potato', 'potato': 'Potato', 'aloo': 'Potato', 'ஆலூ': 'Potato',
-    'தக்காளி': 'Tomato', 'tomato': 'Tomato', 'tamatar': 'Tomato',
-    'நெல்': 'Paddy', 'நெல்லு': 'Paddy', 'அரிசி': 'Paddy', 'paddy': 'Paddy', 'rice': 'Paddy',
-    'வெங்காயம்': 'Onion', 'onion': 'Onion', 'pyaz': 'Onion',
-    'கத்தரி': 'Brinjal', 'கத்தரிக்காய்': 'Brinjal', 'brinjal': 'Brinjal', 'eggplant': 'Brinjal',
-    'மிளகாய்': 'Chilli', 'chilli': 'Chilli', 'chili': 'Chilli', 'mirchi': 'Chilli',
-    'பருத்தி': 'Cotton', 'cotton': 'Cotton',
-    'சோளம்': 'Maize', 'மக்காசோளம்': 'Maize', 'maize': 'Maize', 'corn': 'Maize',
-    'வாழை': 'Banana', 'வாழைக்காய்': 'Banana', 'banana': 'Banana',
-    'கேரட்': 'Carrot', 'carrot': 'Carrot',
-    'கரும்பு': 'Sugarcane', 'sugarcane': 'Sugarcane',
-    'வெண்டை': 'Okra', 'வெண்டைக்காய்': 'Okra', 'okra': 'Okra', 'bhindi': 'Okra',
-    'மஞ்சள்': 'Turmeric', 'turmeric': 'Turmeric',
-    'கடலை': 'Groundnut', 'நிலக்கடலை': 'Groundnut', 'groundnut': 'Groundnut', 'peanut': 'Groundnut'
-  };
+  const hasSpecificCrop = /முட்டைக்கோஸ்|காலிஃபிளவர்|கம்பு|கேழ்வரகு|கோதுமை|பாசிப்பயறு|கொண்டைக்கடலை|தென்னை|மாங்காய்|உளுந்து|மல்லிகை|நெல்|தக்காளி|வெங்காயம்|கேரட்|பருத்தி|மிளகாய்|வாழை|உருளை|மக்காச்சோளம்|மக்கா சோளம்|கரும்பு|கத்தரி|வெண்டை|கடலை|மஞ்சள்|cabbage|cauliflower|millet|ragi|bajra|wheat|greengram|chickpea|coconut|mango|blackgram|jasmine|paddy|rice|tomato|onion|carrot|cotton|chilli|banana|potato|maize|corn|sugarcane|brinjal|okra|groundnut|turmeric|టమోటా|వరి|ఉల్లి|క్యారెట్|మిరప|బంగాళాదుంప|మొక్కజొన్న|చెరకు|వంకాయ|బెండకాయ|వేరుశెనగ|ಪಾಟೊ|ಟೊಮೆಟೊ|ಭತ್ತ|ಈರುಳ್ಳಿ|ಕ್ಯಾರೆಟ್|ಬಾಳೆ|ಆಲೂಗಡ್ಡೆ|ಮೆಕ್ಕೆಜೋಳ|ಕಬ್ಬು|ಬದನೆಕಾಯಿ|ಬೆಂಡೇಕಾಯಿ|ತക്കാளி|നെല്ല്|ഉള്ളി|കാരറ്റ്|വാഴ|ഉരുളക്കിഴങ്ങ്|ചോളം|കരിമ്പ്|വഴുതന|വെണ്ടയ്ക്ക|നിലക്കടല|टमाटर|धान|प्याज|गाजर|केला|आलू|मक्का|गन्ना|बैंगन|भिंडी|मूंगफली|गेहूं/i.test(textLower);
 
-  let detectedCropInMessage = '';
-  for (const [kw, cropName] of Object.entries(CROP_MAP)) {
-    if (textLower.includes(kw)) {
-      detectedCropInMessage = cropName;
-      break;
-    }
-  }
-  const effectiveCrop = detectedCropInMessage || registeredCrop;
+  const detectedDbKey = identifyCropKey(textLower);
+  const detectedCropInMessage = hasSpecificCrop && OFFLINE_CROP_DATABASE[detectedDbKey]
+    ? OFFLINE_CROP_DATABASE[detectedDbKey].name.en
+    : '';
+
+  const isGeneralDomainQuery = /weather|மழை|வானிலை|forecast|scheme|திட்டம்|மானியம்|pm kisan|காப்பீடு|insurance|loan|கடன்|credit|மாடு|பசு|ஆடு|பால்|livestock|cow|cattle|dairy|மண் பரிசோதனை|soil test|விதை நேர்த்தி|seed treatment|தானிய சேமிப்பு|storage|godown|ஹெல்ப்லைன்|helpline|1800|உழவர் சந்தை|இயற்கை விவசாயம்|பஞ்சகவ்யா|panchagavya|டிராக்டர்|இயந்திர|machinery|safety|பாதுகாப்பு|குறைபாடு|deficiency/i.test(textLower);
+
+  const effectiveCrop = detectedCropInMessage || (isGeneralDomainQuery ? '' : registeredCrop);
 
   // ── 2. SMART INTENT DETECTION (MULTILINGUAL & TANGLISH) ──
   const isWeather = /weather|rain|மழை|வானிலை|forecast|மழையா|வருமா|temp|humidity|wind|मौसम|बारिश|వర్షం|ಮಳೆ|മഴ/i.test(textLower);
@@ -647,7 +666,9 @@ export const getFarmerChatResponse = async (message: string, language: string = 
     });
   }
 
-  const systemInstructionCombined = `${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${intentInstruction}\n\n${languageInstruction}`;
+  const agronomicRAG = buildAgronomicRAGContext(message, effectiveCrop || null, district);
+  const scientificEvidence = agronomicRAG ? `SCIENTIFIC AGRONOMIC GROUNDING (ICAR / TNAU):\n${agronomicRAG}\n\n` : '';
+  const systemInstructionCombined = `${SYSTEM_PROMPT_CHAT}\n\n${farmerContextPrompt}\n\n${scientificEvidence}${intentInstruction}\n\n${languageInstruction}`;
 
   const config = {
     model: 'gemini-2.0-flash',
@@ -697,7 +718,7 @@ export const getFarmerChatResponse = async (message: string, language: string = 
   const offlineAnswer = getOfflineAgriculturalResponse(message, {
     farmerName: profile?.name,
     district: profile?.location || profile?.district,
-    crop: profile?.crop_type,
+    crop: effectiveCrop || undefined,
     soil: profile?.soil_type,
   }, language);
   if (offlineAnswer) return sanitizeFarmerResponse(offlineAnswer, language);

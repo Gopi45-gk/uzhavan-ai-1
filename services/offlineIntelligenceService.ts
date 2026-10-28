@@ -463,6 +463,97 @@ export const OFFLINE_DOMAIN_KNOWLEDGE: Record<string, DomainKnowledge> = {
       kn: "ಭತ್ತ ಮತ್ತು ಧಾನ್ಯಗಳನ್ನು ಸರ್ಕಾರದ ನೇರ ಖರೀದಿ ಕೇಂದ್ರಗಳಲ್ಲಿ ಕನಿಷ್ಠ ಬೆಂಬಲ ಬೆಲೆಗೆ (MSP) ಮಾರಾಟ ಮಾಡಬಹುದು.",
       ml: "നെല്ലും മറ്റ് ധാന്യങ്ങളും സർക്കാർ സംഭരണ കേന്ദ്രങ്ങളിൽ താങ്ങുവിലയ്ക്ക് (MSP) വിൽക്കാവുന്നതാണ്."
     }
+  },
+
+  machinery_tools: {
+    summary: {
+      ta: "வேளாண் இயந்திரமயமாக்கல் திட்டத்தின் கீழ் டிராக்டர், பவர் டில்லர், நெல் நடவு மற்றும் அறுவடை இயந்திரங்களுக்கு அரசு 40% முதல் 50% வரை மானியம் வழங்குகிறது.",
+      en: "Under the Sub-Mission on Agricultural Mechanization (SMAM), the government provides 40% to 50% subsidy on tractors, power tillers, transplanters, and harvesters.",
+      hi: "कृषि यंत्रीकरण उप-मिशन (SMAM) के तहत सरकार ट्रैक्टर, पावर टिलर, रोपाई और कटाई मशीनों पर 40% से 50% तक की सब्सिडी देती है।",
+      te: "వ్యవసాయ యాంత్రీకరణ సబ్-మిషన్ (SMAM) కింద ప్రభుత్వం ట్రాక్టర్లు, పవర్ టిల్లర్లు మరియు హార్వెస్టర్లపై 40% నుండి 50% వరకు రాయితీని అందిస్తుంది.",
+      kn: "ಕೃಷಿ ಯಾಂತ್ರೀಕರಣ ಉಪ-ಮಿಷನ್ (SMAM) ಅಡಿಯಲ್ಲಿ ಸರ್ಕಾರವು ಟ್ರ್ಯಾಕ್ಟರ್‌ಗಳು, ಪವರ್ ಟಿಲ್ಲರ್‌ಗಳು ಮತ್ತು ಕಟಾವು ಯಂತ್ರಗಳ ಮೇಲೆ 40% ರಿಂದ 50% ಸಬ್ಸಿಡಿ ನೀಡುತ್ತದೆ.",
+      ml: "കാർഷിക യന്ത്രവൽക്കരണ ഉപ-മിഷൻ (SMAM) വഴി ട്രാക്ടറുകൾ, പവർ ടില്ലറുകൾ, വിളവെടുപ്പ് യന്ത്രങ്ങൾ എന്നിവയ്ക്ക് സർക്കാർ 40% മുതൽ 50% വരെ സബ്‌സിഡി നൽകുന്നു."
+    },
+    action: {
+      ta: "சிறு மற்றும் குறு விவசாயிகள் வாடகை மையங்கள் (Custom Hiring Centres - CHC) மூலம் குறைந்த வாடகையில் கருவிகளைப் பெற வேளாண்மை பொறியியல் துறையை அணுகலாம்.",
+      en: "Small farmers can hire heavy machinery at affordable hourly rental rates from Custom Hiring Centres (CHC) via the Agricultural Engineering Department.",
+      hi: "छोटे किसान कृषि इंजीनियरिंग विभाग के कस्टम हायरिंग सेंटर (CHC) से सस्ती दरों पर उपकरण किराए पर ले सकते हैं।",
+      te: "చిన్న రైతులు వ్యవసాయ ఇంజనీరింగ్ శాఖ కస్టమ్ హైరింగ్ సెంటర్ల (CHC) ద్వారా చవకైన అద్దెకు యంత్రాలను పొందవచ్చు.",
+      kn: "ಸಣ್ಣ ರೈತರು ಕೃಷಿ ಎಂಜಿನಿಯರಿಂಗ್ ವಿಭಾಗದ ಕಸ್ಟಮ್ ಹೈರಿಂಗ್ ಕೇಂದ್ರಗಳ (CHC) ಮೂಲಕ ಕಡಿಮೆ ಬಾಡಿಗೆ ದರದಲ್ಲಿ ಯಂತ್ರೋಪಕರಣಗಳನ್ನು ಬಾಡಿಗೆಗೆ ಪಡೆಯಬಹುದು.",
+      ml: "ചെറുകിട കർഷകർക്ക് കാർഷിക എഞ്ചിനീയറിംഗ് വകുപ്പിന്റെ കസ്റ്റം ഹയറിംഗ് സെന്ററുകൾ (CHC) വഴി കുറഞ്ഞ വാടകയ്ക്ക് യന്ത്രങ്ങൾ ലഭ്യമാക്കാം."
+    }
+  },
+  water_conservation: {
+    summary: {
+      ta: "பிரதம மந்திரி கிரிஷி சிஞ்சாயி யோஜனா (PMKSY) திட்டத்தில் சொட்டுநீர் மற்றும் தெளிப்பு நீர் பாசனத்திற்கு சிறு விவசாயிகளுக்கு 100% மற்றும் இதர விவசாயிகளுக்கு 75% வரை மானியம் கிடைக்கிறது.",
+      en: "Under PM Krishi Sinchayee Yojana (PMKSY), micro-irrigation subsidies of up to 100% for small/marginal farmers and 75% for other farmers are provided for drip and sprinkler systems.",
+      hi: "पीएम कृषि सिंचाई योजना (PMKSY) के तहत ड्रिप और स्प्रिंकलर सिंचाई पर लघु किसानों को 100% और अन्य को 75% तक की सब्सिडी मिलती है।",
+      te: "పీఎం కృషి సించాయి యోజన (PMKSY) కింద సూక్ష్మ సేద్యం (బిందు మరియు తుంపర సేద్యం) కొరకు చిన్న రైతులకు 100%, ఇతర రైతులకు 75% వరకు రాయితీ లభిస్తుంది.",
+      kn: "ಪ್ರಧಾನಮಂತ್ರಿ ಕೃಷಿ ಸಿಂಚಾಯಿ ಯೋಜನೆ (PMKSY) ಅಡಿಯಲ್ಲಿ ಹನಿ ಮತ್ತು ತುಂತುರು ನೀರಾವರಿಗಾಗಿ ಸಣ್ಣ ರೈತರಿಗೆ 100% ಮತ್ತು ಇತರೆ ರೈತರಿಗೆ 75% ವರೆಗೆ ಸಬ್ಸಿಡಿ ಲಭ್ಯವಿದೆ.",
+      ml: "പിഎം കൃഷി സിഞ്ചായി യോജന (PMKSY) പ്രകാരം തുള്ളിനനയ്ക്കും സ്പ്രിംഗ്ലർ സംവിധാനങ്ങൾക്കും ചെറുകിട കർഷകർക്ക് 100% വരെയും മറ്റുള്ളവർക്ക് 75% വരെയും സബ്‌സിഡി ലഭിക്കുന്നു."
+    },
+    action: {
+      ta: "நீர் ஆவியாவதைத் தடுக்க பிளாஸ்டிக் மூடாக்கு (Mulching) அமைத்து, பண்ணைக் குட்டைகள் அமைத்து மழைநீரை சேமிக்கவும்.",
+      en: "Install plastic or organic mulching to cut soil evaporation by 40% and harvest runoff water using farm ponds.",
+      hi: "मिट्टी से वाष्पीकरण रोकने के लिए मल्चिंग अपनाएं और खेत में बने तालाबों में वर्षा जल संचयन करें।",
+      te: "నేలలో తేమ ఆవిరి కాకుండా మల్చింగ్ షీట్లు వాడండి మరియు పొలం కుంటల ద్వారా వర్షపు నీటిని నిల్వ చేయండి.",
+      kn: "ಮಣ್ಣಿನಲ್ಲಿ ತೇವಾಂಶ ಆವಿಯಾಗುವುದನ್ನು ತಡೆಯಲು ಮಲ್ಚಿಂಗ್ ಬಳಸಿ ಮತ್ತು ಕೃಷಿ ಹೊಂಡಗಳ ಮೂಲಕ ಮಳೆನೀರನ್ನು ಸಂಗ್ರಹಿಸಿ.",
+      ml: "ബാഷ്പീകരണം തടയാൻ മൾച്ചിംഗ് ഷീറ്റുകൾ ഉപയോഗിക്കുക, കൃഷിത്തോട്ടങ്ങളിൽ മഴവെള്ള സംഭരണ കുളങ്ങൾ നിർമ്മിക്കുക."
+    }
+  },
+  chemical_safety: {
+    summary: {
+      ta: "பூச்சிக்கொல்லி தெளிக்கும் போது மூக்குக்கவசம், கையுறை மற்றும் பாதுகாப்பு ஆடை அணிவது அவசியம்; காற்று வீசும் திசைக்கு எதிரே ஒருபோதும் மருந்து அடிக்கக்கூடாது.",
+      en: "When spraying agricultural chemicals, always wear PPE (mask, gloves, boots). Never spray against the wind direction or in extreme midday heat.",
+      hi: "कीटनाशक छिड़कते समय मास्क, दस्ताने और सुरक्षात्मक कपड़े अवश्य पहनें। हवा की उल्टी दिशा में या तेज धूप में कभी छिड़काव न करें।",
+      te: "పురుగుమందులు పిచికారీ చేసేటప్పుడు తప్పనిసరిగా మాస్క్, చేతి తొడుగులు ధరించండి. గాలి వీచే దిశకు ఎదురుగా ఎప్పుడూ స్ప్రే చేయవద్దు.",
+      kn: "ಕೀಟನಾಶಕ ಸಿಂಪಡಿಸುವಾಗ ಮಾಸ್ಕ್, ಕೈಗವಸು ಮತ್ತು ರಕ್ಷಣಾತ್ಮಕ ಬಟ್ಟೆಗಳನ್ನು ಧರಿಸಿ. ಗಾಳಿಯ ದಿಕ್ಕಿಗೆ ಎದುರಾಗಿ ಅಥವಾ ಮಧ್ಯಾಹ್ನದ ಬಿರುಬಿಸಿಲಿನಲ್ಲಿ ಸಿಂಪಡಿಸಬೇಡಿ.",
+      ml: "കീടനാശിനി തളിക്കുമ്പോൾ മാസ്കും കയ്യുറകളും സംരക്ഷണ വസ്ത്രങ്ങളും നിർബന്ധമായും ധരിക്കുക. കാറ്റിന്റെ ദിശയ്ക്ക് എതിരായി ഒരിക്കലും മരുന്ന് തളിക്കരുത്."
+    },
+    action: {
+      ta: "காலை 7-10 அல்லது மாலை 4-6 மணிக்குள் மருந்து தெளிக்கவும்; காலி டப்பாக்களை துளையிட்டு ஆழமாக மண்ணில் புதைக்கவும்.",
+      en: "Spray during cool morning (7-10 AM) or late afternoon (4-6 PM). Puncture empty chemical containers and dispose safely away from water sources.",
+      hi: "सुबह 7-10 बजे या शाम 4-6 बजे छिड़काव करें। खाली बोतलों को तोड़कर जल स्रोतों से दूर जमीन में सुरक्षित दबाएं।",
+      te: "ఉదయం 7-10 లేదా సాయంత్రం 4-6 గంటల మధ్య స్ప్రే చేయండి. ఖాళీ డబ్బాలను పగలగొట్టి నీటి వనరులకు దూరంగా పూడ్చిపెట్టండి.",
+      kn: "ಬೆಳಿಗ್ಗೆ 7-10 ಅಥವಾ ಸಂಜೆ 4-6 ರ ಒಳಗೆ ಸಿಂಪಡಿಸಿ. ಖಾಲಿ ಡಬ್ಬಿಗಳನ್ನು ನಾಶಪಡಿಸಿ ನೀರಿನ ಮೂಲಗಳಿಂದ ದೂರದಲ್ಲಿ ಸುರಕ್ಷಿತವಾಗಿ ವಿಲೇವಾರಿ ಮಾಡಿ.",
+      ml: "രാവിലെ 7-10 അല്ലെങ്കിൽ വൈകുന്നേരം 4-6 മണിക്ക് മരുന്ന് തളിക്കുക. ഒഴിഞ്ഞ കുപ്പികൾ തുളച്ച് ജലസ്രോതസ്സുകളിൽ നിന്ന് അകലെ കുഴിച്ചുമൂടുക."
+    }
+  },
+  weather_advisory: {
+    summary: {
+      ta: "கனமழை அல்லது புயல் எச்சரிக்கை இருந்தால் பயிரில் உரமிடுவதையோ அல்லது பூச்சி மருந்து தெளிப்பதையோ முற்றிலும் தவிர்க்கவும்; மருந்து மழைநீரில் அடித்துச் செல்லப்பட்டு வீணாகும்.",
+      en: "When heavy rain or storms are forecast, strictly avoid spraying fertilizers or pesticides as they will wash off and waste inputs.",
+      hi: "भारी बारिश की चेतावनी होने पर खाद या कीटनाशक का छिड़काव बिल्कुल न करें, क्योंकि बारिश में रसायन बहकर नष्ट हो जाते हैं।",
+      te: "వర్షం పడే సూచన ఉన్నప్పుడు ఎరువులు వేయడం లేదా పురుగుమందులు పిచికారీ చేయడం పూర్తిగా ఆపండి, లేకుంటే మందు కొట్టుకుపోతుంది.",
+      kn: "ಮಳೆಯ ಮುನ್ಸೂಚನೆ ಇದ್ದಾಗ ರಸಗೊಬ್ಬರ ಅಥವಾ ಕೀಟನಾಶಕ ಸಿಂಪಡಿಸುವುದನ್ನು ತಕ್ಷಣ ನಿಲ್ಲಿಸಿ; ಮಳೆಯಲ್ಲಿ ಔಷಧ ಕೊಚ್ಚಿಹೋಗಿ ವ್ಯರ್ಥವಾಗುತ್ತದೆ.",
+      ml: "കനത്ത മഴ മുന്നറിയിപ്പുണ്ടെങ്കിൽ വളപ്രയോഗമോ കീടനാശിനി പ്രയോഗമോ ഒഴിവാക്കുക; മഴവെള്ളത്തിൽ മരുന്ന് ഒലിച്ചുപോയി നഷ്ടമുണ്ടാകും."
+    },
+    action: {
+      ta: "வயலில் நீர் தேங்காமல் இருக்க வடிகால் வாய்க்கால்களை உடனே தூர்வாரவும்; வாழை மரங்களுக்கு முட்டுக்கொடுத்து காற்றிலிருந்து பாதுகாக்கவும்.",
+      en: "Clear drainage channels to prevent root asphyxiation, and provide support props for banana and tall crops against wind lodging.",
+      hi: "खेत में जलभराव रोकने के लिए जल निकासी नालियों को साफ करें और तेज हवा से केले के पौधों को सहारा दें।",
+      te: "పొలంలో నీరు నిల్వ ఉండకుండా మురుగు కాలువలను శుభ్రం చేయండి; బలమైన గాలుల నుండి అరటి తోటలకు ఊతాలు ఏర్పాటు చేయండి.",
+      kn: "ಜಮೀನಿನಲ್ಲಿ ನೀರು ನಿಲ್ಲದಂತೆ ಒಳಚರಂಡಿ ಕಾಲುವೆಗಳನ್ನು ತೆರವುಗೊಳಿಸಿ; ಬಲವಾದ ಗಾಳಿಯಿಂದ ಬಾಳೆ ಗಿಡಗಳನ್ನು ರಕ್ಷಿಸಲು ಆಸರೆ ನೀಡಿ.",
+      ml: "തോട്ടങ്ങളിൽ വെള്ളക്കെട്ട് ഒഴിവാക്കാൻ നീർവാർച്ചാ ചാലുകൾ വൃത്തിയാക്കുക; കാറ്റിൽ വാഴ മറിയാതിരിക്കാൻ താങ്ങുകൾ കൊടുക്കുക."
+    }
+  },
+  poultry_fisheries: {
+    summary: {
+      ta: "நாட்டுக்கோழி வளர்ப்பில் ராணிகேட் (கொக்கு நோய்) தடுப்பூசி முதல் வாரம் மற்றும் 8-வது வாரத்தில் போடுவது இறப்பைத் தடுக்கும்; மீன் வளர்ப்பில் நீரின் ஆக்ஸிஜன் அளவு 5 ppm மேல் இருக்க வேண்டும்.",
+      en: "In backyard poultry, administering the Ranikhet (F1/Lasota) vaccine at week 1 and week 8 prevents fatal outbreaks. In aquaculture, maintain water dissolved oxygen above 5 ppm.",
+      hi: "देसी मुर्गी पालन में रानीखेत का टीका पहले और आठवें सप्ताह में लगाने से मृत्यु दर रुकती है। मछली पालन में जल का ऑक्सीजन स्तर 5 ppm से ऊपर रखें।",
+      te: "నాటుకోళ్ల పెంపకంలో రాణికేట్ టీకా మొదటి మరియు 8వ వారంలో వేయిస్తే మరణాలు తగ్గుతాయి. చేపల చెరువులో ఆక్సిజన్ స్థాయి 5 ppm కంటే ఎక్కువ ఉండేలా చూడండి.",
+      kn: "ನಾಟಿ ಕೋಳಿ ಸಾಕಾಣಿಕೆಯಲ್ಲಿ ರಾಣಿಕೇತ್ ಲಸಿಕೆಯನ್ನು ಮೊದಲ ಮತ್ತು 8ನೇ ವಾರದಲ್ಲಿ ಹಾಕಿಸುವುದರಿಂದ ಸಾವು-ನೋವುಗಳನ್ನು ತಡೆಯಬಹುದು. ಮೀನು ಸಾಕಾಣಿಕೆಯಲ್ಲಿ ನೀರಿನ ಆಮ್ಲಜನಕ ಮಟ್ಟ 5 ppm ಗಿಂತ ಹೆಚ್ಚಿರಬೇಕು.",
+      ml: "നാടൻ കോഴി വളർത്തലിൽ റാണിഖെറ്റ് വാക്സിൻ ഒന്നാമത്തെയും എട്ടാമത്തെയും ആഴ്ചയിൽ നൽകുന്നത് മരണനിരക്ക് കുറയ്ക്കും. മത്സ്യകൃഷിയിൽ ഓക്സിജൻ അളവ് 5 ppm ന് മുകളിൽ നിലനിർത്തുക."
+    },
+    action: {
+      ta: "மீன்குஞ்சுகளுக்கு பிண்ணாக்கு மற்றும் தவிடு கலவை உணவளித்து, அதிகாலை வேளையில் குட்டையில் ஏரேட்டர் அல்லது தண்ணீர் சுழற்சி மூலம் காற்றோட்டம் அளிக்கவும்.",
+      en: "Feed fingerlings with groundnut cake and rice bran (1:1), and use pond aerators or water agitation during early dawn hours.",
+      hi: "मछली के बच्चों को सरसों की खली और चोकर का मिश्रण दें और सुबह के समय तालाब में पानी चलाकर ऑक्सीजन बढ़ाएं।",
+      te: "చేప పిల్లలకు వేరుశెనగ చెక్క మరియు తవుడు మిశ్రమాన్ని ఆహారంగా ఇవ్వండి మరియు ఉదయాన్నే నీటిని కలయతిప్పి ఆక్సిజన్ అందించండి.",
+      kn: "ಮೀನು ಮರಿಗಳಿಗೆ ಕಡಲೆಕಾಯಿ ಹಿಂಡಿ ಮತ್ತು ತೌಡಿನ ಮಿಶ್ರಣವನ್ನು ನೀಡಿ ಮುಂಜಾನೆ ಸಮಯದಲ್ಲಿ ನೀರಿನಲ್ಲಿ ಆಮ್ಲಜನಕ ಪರಿಚಲನೆ ಮಾಡಿ.",
+      ml: "മത്സ്യക്കുഞ്ഞുങ്ങൾക്ക് കടലപ്പിണ്ണാക്കും തവിടും ചേർത്ത തീറ്റ നൽകുക, അതിരാവിലെ കുളത്തിൽ വായുസഞ്ചാരം ഉറപ്പാക്കുക."
+    }
   }
 };
 
@@ -481,7 +572,7 @@ export interface ContextEnrichmentOffline {
 /**
  * Normalizes input text and identifies matching crop from OFFLINE_CROP_DATABASE
  */
-function identifyCropKey(text: string, defaultCrop?: string): string {
+export function identifyCropKey(text: string, defaultCrop?: string): string {
   const t = text.toLowerCase();
   if (/முட்டைக்கோஸ்|முட்டை கோஸ்|கோஸ்|cabbage|patta gobhi|पत्ता गोभी|క్యాబేజీ|ಕೋಸು|കാബേജ്/i.test(t)) return "cabbage";
   if (/காலிஃபிளவர்|பூக்கோஸ்|cauliflower|phool gobhi|फूल गोभी|కాలీఫ్లవర్|ಹೂಕೋಸು|കോളിഫ്ലവർ/i.test(t)) return "cauliflower";
@@ -521,6 +612,90 @@ function identifyCropKey(text: string, defaultCrop?: string): string {
  * Resolves any agricultural farmer query completely offline in 1-2 concise sentences
  * in the farmer's target language (ta, en, hi, te, kn, ml).
  */
+
+/**
+ * Builds scientifically verified agricultural RAG evidence directly from
+ * ICAR and TNAU Packages of Practices for any query, crop, and location.
+ */
+export function buildAgronomicRAGContext(query: string, cropOverride?: string | null, location?: string | null): string {
+  const q = (query || "").toLowerCase().trim();
+  const cropKey = identifyCropKey(q, cropOverride || undefined);
+  const crop = OFFLINE_CROP_DATABASE[cropKey];
+  const hasSpecificCropInQuery = /முட்டைக்கோஸ்|காலிஃபிளவர்|கம்பு|கேழ்வரகு|கோதுமை|பாசிப்பயறு|கொண்டைக்கடலை|தென்னை|மாங்காய்|உளுந்து|மல்லிகை|நெல்|தக்காளி|வெங்காயம்|கேரட்|பருத்தி|மிளகாய்|வாழை|உருளை|மக்காச்சோளம்|கரும்பு|கத்தரி|வெண்டை|கடலை|மஞ்சள்|cabbage|cauliflower|millet|ragi|bajra|wheat|greengram|chickpea|coconut|mango|blackgram|jasmine|paddy|rice|tomato|onion|carrot|cotton|chilli|banana|potato|maize|corn|sugarcane|brinjal|okra|groundnut|turmeric/i.test(q);
+
+  let evidence = "";
+
+  if (crop && (hasSpecificCropInQuery || cropOverride)) {
+    evidence += `[AGRONOMIC SCIENTIFIC KNOWLEDGE FOR ${crop.name.en.toUpperCase()}]:\n`;
+    if (/உரம்|fertilizer|npk|dap|urea|யூரியா|பொட்டாஷ்|எరువు|ಗೊಬ್ಬರ|വളം|खाद/i.test(q)) {
+      evidence += `- Verified NPK Schedule: ${crop.npk}\n`;
+    }
+    if (/நோய்|பூச்சி|புழு|கருகல்|வாடல்|அழுகல்|சுருட்டை|மருந்து|disease|pest|blight|rot|wilt|fungus|spray|தெగులు|రೋಗ|രോഗം|कीट|रोग/i.test(q)) {
+      evidence += `- Key Pests & Diseases: ${crop.pestsAndDiseases}\n`;
+      evidence += `- Biological / Organic Remedy: ${crop.organicRemedy}\n`;
+      evidence += `- Chemical Control & Dosage: ${crop.chemicalDosage}\n`;
+    }
+    if (/நீர்|பாசனம்|water|irrigation|నీరు|ನೀರಾವರಿ|നനയ്ക്കൽ|सिंचाई/i.test(q)) {
+      evidence += `- Irrigation Requirements: ${crop.irrigation}\n`;
+    }
+    if (/மண்|soil|மணல்|கரிசல்|வண்டல்|செம்மண்|நேల|ಮಣ್ಣು|മണ്ണ്|मिट्टी/i.test(q)) {
+      evidence += `- Recommended Soil & Drainage: ${crop.soil}\n`;
+    }
+    if (/விதை|ரகம்|பருவம்|sow|seed|variet|season|విత్తన|ತಳಿ|വിത്ത്|किस्में/i.test(q)) {
+      evidence += `- Certified Varieties: ${crop.varieties.join(", ")}\n`;
+      evidence += `- Sowing Window: ${crop.sowingTime}\n`;
+    }
+    if (/விலை|சந்தை|மண்டி|price|market|mandi|ధర|ಬೆಲೆ|വില|मंडी भाव/i.test(q)) {
+      evidence += `- Mandi Market Reference: ${crop.marketBenchmark}\n`;
+    }
+    if (!evidence.includes("- Verified NPK") && !evidence.includes("- Key Pests")) {
+      evidence += `- Sowing Season: ${crop.sowingTime}\n`;
+      evidence += `- Fertilizer: ${crop.npk}\n`;
+      evidence += `- Protection: ${crop.organicRemedy}; ${crop.chemicalDosage}\n`;
+    }
+  }
+
+  // Domain evidence
+  if (/மாடு|பசு|ஆடு|பால்|livestock|cattle|dairy|cow|goat|milk|పాడి|ಹಸು|പശു|गाय/i.test(q)) {
+    evidence += `[LIVESTOCK & DAIRY EXTENSION]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.livestock_dairy.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.livestock_dairy.action.en}\n`;
+  }
+  if (/கோழி|மீன்|நாட்டுக்கோழி|poultry|fisheries|fish pond|aquaculture|కోళ్ళు|చేపలు|ಮೀನು|മത്സ്യം/i.test(q)) {
+    evidence += `[POULTRY & AQUACULTURE EXTENSION]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.poultry_fisheries.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.poultry_fisheries.action.en}\n`;
+  }
+  if (/இயற்கை விவசாயம்|பஞ்சகவ்யா|மண்புழு|organic|panchagavya|vermicompost|సేంద్రీయ|ಸಾವಯವ|ജൈവ/i.test(q)) {
+    evidence += `[ORGANIC FARMING PRACTICES]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.organic_farming.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.organic_farming.action.en}\n`;
+  }
+  if (/மண் பரிசோதனை|soil test|soil health|மண் ஆய்வு|నేల పరీక్ష|ಮಣ್ಣು ಪರೀಕ್ಷೆ|മണ്ണ് പരിശോധന/i.test(q)) {
+    evidence += `[SOIL TESTING PROTOCOL]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.soil_testing.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.soil_testing.action.en}\n`;
+  }
+  if (/விதை நேர்த்தி|seed treatment|டிரைக்கோடெர்மா|విత్తన శుద్ధి|ಬೀಜೋಪಚಾರ|വിത്തുചികിത്സ/i.test(q)) {
+    evidence += `[SEED TREATMENT PROTOCOL]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.seed_treatment.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.seed_treatment.action.en}\n`;
+  }
+  if (/தானிய சேமிப்பு|storage|godown|சேமிப்பு|cold storage|ధాన్యాల నిల్వ|ಧಾನ್ಯ ಸಂಗ್ರಹ|ധാന്യ സംഭരണം/i.test(q)) {
+    evidence += `[POST-HARVEST GRAIN STORAGE]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.post_harvest.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.post_harvest.action.en}\n`;
+  }
+  if (/திட்டம்|மானியம்|pm kisan|காப்பீடு|scheme|subsidy|insurance|yojana|పథకం|ಯೋಜನೆ|പദ്ധതി/i.test(q)) {
+    evidence += `[GOVERNMENT SCHEMES & SUBSIDIES]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.government_schemes.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.government_schemes.action.en}\n`;
+  }
+  if (/இயந்திர|டிராக்டர்|பவர் டில்லர்|machinery|tractor|tiller|harvester|smam|chc|యంత్రాలు|ಯಂತ್ರ/i.test(q)) {
+    evidence += `[FARM MECHANIZATION & CHC]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.machinery_tools.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.machinery_tools.action.en}\n`;
+  }
+  if (/சொட்டு நீர்|தெளிப்பு நீர்|pmksy|drip irrigation|sprinkler|mulching|பண்ணைக்குட்டை|തുള്ളിനന/i.test(q)) {
+    evidence += `[WATER CONSERVATION & MICRO-IRRIGATION]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.water_conservation.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.water_conservation.action.en}\n`;
+  }
+  if (/பாதுகாப்பு|கையுறை|முகக்கவசம்|safety|ppe|mask|gloves|precaution|சுரக்ஷா/i.test(q)) {
+    evidence += `[FARM SAFETY & CHEMICAL PRECAUTIONS]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.chemical_safety.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.chemical_safety.action.en}\n`;
+  }
+  if (/ஹெல்ப்லைன்|உதவி எண்|helpline|kisan call centre|1800|tnau/i.test(q)) {
+    evidence += `[INSTITUTIONS & HELPLINES]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.institutions_helplines.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.institutions_helplines.action.en}\n`;
+  }
+  if (/உழவர் சந்தை|e-nam|விற்பனை|direct market|రైతు బజార్|ರೈತ ಸಂತೆ|കർഷക വിപണി/i.test(q)) {
+    evidence += `[MARKETING & DIRECT PURCHASE]:\n- ${OFFLINE_DOMAIN_KNOWLEDGE.farmer_business.summary.en}\n- Action: ${OFFLINE_DOMAIN_KNOWLEDGE.farmer_business.action.en}\n`;
+  }
+
+  return evidence.trim();
+}
+
 export const getOfflineAgriculturalResponse = (
   query: string,
   context?: ContextEnrichmentOffline,
@@ -562,6 +737,24 @@ export const getOfflineAgriculturalResponse = (
     return `${d.summary.en} ${d.action.en}`;
   }
 
+  // ── INTENT: NUTRIENT & MICRONUTRIENT DEFICIENCY (போரான் / துத்தநாகம் / DEFICIENCY) ──
+  if (/போரான்|துத்தநாகம்|boron|zinc|குறைபாடு|deficiency|தண்டு வெடிப்பு|இலை மஞ்சள்|மஞ்சள் நிறம்|chlorosis|फेरस|जिंक|బోరాన్|జింక్|ಬೋರಾನ್|ಜಿಂಕ್|ബോറോൺ|സിങ്ക്/i.test(q)) {
+    if (cropKey === 'cauliflower' || /போரான்|boron|बोरोन|బోరాన్|ಬೋರಾನ್|ബോറോൺ/i.test(q)) {
+      if (isTa) return `காலிஃபிளவரில் போரான் குறைபாட்டால் தண்டு வெடிப்பு அல்லது பழுப்பு நிறம் தோன்றினால் போராக்ஸ் (Borax) லிட்டருக்கு 2 கிராம் நீரில் கலந்து இலைவழியாக தெளிக்கவும்.`;
+      if (isHi) return `फूलगोभी में बोरॉन की कमी से तना फटने या भूरापन आने पर बोरेक्स 2 ग्राम/लीटर पानी में घोलकर छिड़कें।`;
+      if (isTe) return `కాలీఫ్లవర్‌లో బోరాన్ లోపం వల్ల కాండం పగలడం లేదా గోధుమ రంగు వస్తే లీటరు నీటికి 2 గ్రాముల బోరాక్స్ పిచికారీ చేయండి.`;
+      if (isKn) return `ಹೂಕೋಸಿನಲ್ಲಿ ಬೋರಾನ್ ಕೊರತೆಯಿಂದ ಕಂದು ಬಣ್ಣ ಅಥವಾ ಕಾಂಡ ಬಿರುಕು ಕಂಡುಬಂದರೆ ಲೀಟರ್ ನೀರಿಗೆ 2 ಗ್ರಾಂ ಬೋರಾಕ್ಸ್ ಸಿಂಪಡಿಸಿ.`;
+      if (isMl) return `കോളിഫ്ലവറിൽ ബോറോൺ കുറവുമൂലം തണ്ട് പൊട്ടുകയോ തവിട്ടുനിറം വരികയോ ചെയ്താൽ ലിറ്ററിന് 2 ഗ്രാം ബോറാക്സ് തളിക്കുക.`;
+      return `For cauliflower boron deficiency causing hollow stem or browning, spray Borax @ 2 g/liter foliar spray.`;
+    }
+    if (isTa) return `${cropName} பயிரில் துத்தநாக (Zinc) குறைபாட்டைப் போக்க ஜிங்க் சல்பேட் 0.5% (லிட்டருக்கு 5 கிராம்) இலைவழியாகத் தெளிக்கவும்.`;
+    if (isHi) return `${cropName} में जिंक की कमी दूर करने के लिए 0.5% जिंक सल्फेट (5 ग्राम/लीटर) का छिड़काव करें।`;
+    if (isTe) return `${cropName} పంటలో జింక్ లోప నివారణకు 0.5% జింక్ సల్ఫేట్ (లీటరుకు 5 గ్రాములు) పిచికారీ చేయండి.`;
+    if (isKn) return `${cropName} ಬೆಳೆಯಲ್ಲಿ ಸತುವಿನ (Zinc) ಕೊರತೆ ನಿವಾರಣೆಗೆ 0.5% ಜಿಂಕ್ ಸಲ್ಫೇಟ್ (ಲೀಟರ್‌ಗೆ 5 ಗ್ರಾಂ) ಸಿಂಪಡಿಸಿ.`;
+    if (isMl) return `${cropName} വിളയിൽ സിങ്ക് കുറവ് പരിഹരിക്കാൻ 0.5% സിങ്ക് സൾഫേറ്റ് (ലിറ്ററിന് 5 ഗ്രാം) തളിക്കുക.`;
+    return `For micronutrient deficiency in ${crop.name.en}, spray Zinc Sulphate 0.5% (5g/liter) as foliar spray.`;
+  }
+
   // ── INTENT: FERTILIZER SCHEDULE & DOSAGE (Prioritized over Soil) ──
   if (/உரம்|dap|npk|யூரியா|பொட்டாஷ்|fertilizer|khad|manure|எరువు|యూరియా|ಗೊಬ್ಬರ|ಯೂರಿಯಾ|വളം|യൂറിയ|சாம்பல் சத்து|தழைச்சத்து|மணிச்சத்து|தொழுவுரம்|கம்போஸ்ட்|micronutrient|நுண்ணூட்டம்|உர நிர்வாகம்/i.test(q)) {
     if (isTa) return `${cropName} பயிருக்கான பரிந்துரைக்கப்பட்ட உர அளவு: ${crop.npk}. உரம் இட்டவுடன் மிதமான நீர்ப்பாசனம் செய்யவும்.`;
@@ -584,9 +777,12 @@ export const getOfflineAgriculturalResponse = (
   }
 
   // ── INTENT: WEED MANAGEMENT (களை / WEEDS) ──
-  if (/களை\b|களைகள்|களைக்கொல்லி|களை மேலாண்மை|weed\b|weeds\b|herbicide/i.test(q)) {
+  if (/களை\b|களைகள்|களைக்கொல்லி|களை மேலாண்மை|weed\b|weeds\b|herbicide|కలుపు|ಕಳೆ|കള/i.test(q)) {
     if (isTa) return `${cropName} பயிரில் விதைத்த 20 மற்றும் 40 ஆம் நாளில் கைக்களை எடுக்கவும் அல்லது தகுந்த களைக்கொல்லியை ஈரப்பதமான மண்ணில் தெளிக்கவும்.`;
     if (isHi) return `${cropName} में बुवाई के 20 और 40 दिन बाद निराई करें या खेत में नमी होने पर अनुशंसित खरपतवारनाशी का छिड़काव करें।`;
+    if (isTe) return `${cropName} పంటలో విత్తిన 20 మరియు 40 రోజుల వద్ద కలుపు తీయండి లేదా తేమ ఉన్నప్పుడు సిఫార్సు చేసిన కలుపు మందు పిచికారీ చేయండి.`;
+    if (isKn) return `${cropName} ಬೆಳೆಯಲ್ಲಿ ಬಿತ್ತನೆ ಮಾಡಿದ 20 ಮತ್ತು 40 ದಿನಗಳಲ್ಲಿ ಕಳೆ ತೆಗೆಯಿರಿ ಅಥವಾ ಶಿಫಾರಸು ಮಾಡಿದ ಕಳೆನಾಶಕವನ್ನು ಸಿಂಪಡಿಸಿ.`;
+    if (isMl) return `${cropName} കൃഷിയിൽ വിതച്ച് 20, 40 ദിവസങ്ങളിൽ കള പറിക്കുക അല്ലെങ്കിൽ മണ്ണിൽ ഈർപ്പമുള്ളപ്പോൾ കളനാശിനി തളിക്കുക.`;
     return `For ${crop.name.en}, carry out hand weeding at 20 and 40 days after sowing or spray recommended herbicide under adequate soil moisture.`;
   }
 
@@ -712,6 +908,50 @@ export const getOfflineAgriculturalResponse = (
   // ── INTENT 15: POST-HARVEST & MARKETING (சேமிப்பு / உழவர் சந்தை / STORAGE / MARKETPLACE) ──
   if (/சேமிப்பு|விற்பனை|உழவர் சந்தை|கொள்முதல்|storage|post harvest|godown|cold storage|procurement|అమ్మకం|రైతు బజార్|ಮಾರಾಟ|ರೈತ ಸಂತೆ|വിപണനം|കർഷക വിപണി/i.test(q)) {
     const d = /சேமிப்பு|storage|godown/i.test(q) ? OFFLINE_DOMAIN_KNOWLEDGE.post_harvest : OFFLINE_DOMAIN_KNOWLEDGE.farmer_business;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: FARM MACHINERY & TOOLS (இயந்திரம் / டிராக்டர் / MACHINERY / SMAM / CHC) ──
+  if (/இயந்திர|டிராக்டர்|பவர் டில்லர்|அறுவடை இயந்திரம்|tractor|machinery|tiller|harvester|sprayer|chc|smam|వాహనం|యంత్రాలు|ಟ್ರ್ಯಾಕ್ಟರ್|യന്ത്രം/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.machinery_tools;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: WATER CONSERVATION & MICRO-IRRIGATION (சொட்டு நீர் / PMKSY / MULCHING) ──
+  if (/சொட்டு நீர் மானியம்|தெளிப்பு நீர் மானியம்|pmksy|micro irrigation|mulching|மூடாக்கு|பண்ணைக்குட்டை|farm pond|రాయితీ నీటిపారుదల|ಹನಿ ನೀರಾವರಿ ಸಬ್ಸಿಡಿ|തുള്ളിനന സബ്‌സിഡി/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.water_conservation;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: CHEMICAL SAFETY & PPE (பாதுகாப்பு / கையுறை / முகக்கவசம் / SAFETY / PPE) ──
+  if (/பாதுகாப்பு|கையுறை|முகக்கவசம்|மருந்து தெளிக்கும் முறை|safety|ppe|mask|gloves|precaution|విష ప్రభావం|സുരക്ഷ|सावधानी/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.chemical_safety;
+    if (isTa) return `${d.summary.ta} ${d.action.ta}`;
+    if (isHi) return `${d.summary.hi} ${d.action.hi}`;
+    if (isTe) return `${d.summary.te} ${d.action.te}`;
+    if (isKn) return `${d.summary.kn} ${d.action.kn}`;
+    if (isMl) return `${d.summary.ml} ${d.action.ml}`;
+    return `${d.summary.en} ${d.action.en}`;
+  }
+
+  // ── INTENT: POULTRY & FISHERIES (கோழி / மீன் வளர்ப்பு / POULTRY / FISHERIES / AQUACULTURE) ──
+  if (/கோழி|மீன் வளர்ப்பு|நாட்டுக்கோழி|குளம்|poultry|chicken|fisheries|fish pond|aquaculture|కోళ్ళు|చేపలు|ಕೋಳಿ|ಮೀನು|കോഴി|മത്സ്യം/i.test(q)) {
+    const d = OFFLINE_DOMAIN_KNOWLEDGE.poultry_fisheries;
     if (isTa) return `${d.summary.ta} ${d.action.ta}`;
     if (isHi) return `${d.summary.hi} ${d.action.hi}`;
     if (isTe) return `${d.summary.te} ${d.action.te}`;

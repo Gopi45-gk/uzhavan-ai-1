@@ -1118,20 +1118,30 @@ async def nvidia_chat_proxy(request: Request):
     crop_name_en = "Crop"
     
     crop_keywords = [
-        (["potato", "உருளைக்கிழங்கு", "உருளை", "ஆலூ"], "உருளைக்கிழங்கு", "Potato"),
-        (["tomato", "தக்காளி", "டமாடா"], "தக்காளி", "Tomato"),
-        (["paddy", "rice", "நெல்", "நெல்லு", "அரிசி"], "நெல்", "Paddy"),
-        (["onion", "வெங்காயம்", "பியஜ்"], "வெங்காயம்", "Onion"),
-        (["brinjal", "eggplant", "கத்தரி", "கத்தரிக்காய்"], "கத்தரிக்காய்", "Brinjal"),
-        (["chilli", "chili", "மிளகாய்", "மிர்சி"], "மிளகாய்", "Chilli"),
-        (["cotton", "பருத்தி"], "பருத்தி", "Cotton"),
-        (["maize", "corn", "சோளம்", "மக்காசோளம்"], "சோளம்", "Maize"),
-        (["banana", "வாழை", "வாழைக்காய்"], "வாழை", "Banana"),
-        (["carrot", "கேரட்"], "கேரட்", "Carrot"),
-        (["sugarcane", "கரும்பு"], "கரும்பு", "Sugarcane"),
-        (["okra", "bhindi", "வெண்டை", "வெண்டைக்காய்"], "வெண்டைக்காய்", "Okra"),
-        (["turmeric", "மஞ்சள்"], "மஞ்சள்", "Turmeric"),
-        (["groundnut", "peanut", "கடலை", "நிலக்கடலை"], "நிலக்கடலை", "Groundnut"),
+        (["potato", "உருளைக்கிழங்கு", "உருளை", "ஆலூ", "आलू", "బంగాళాదుంప", "ಆಲೂಗಡ್ಡೆ", "ഉരുളക്കിഴങ്ങ്"], "உருளைக்கிழங்கு", "Potato"),
+        (["tomato", "தக்காளி", "டமாடா", "टमाटर", "టమోటా", "ಟೊಮೆಟೊ", "തക്കാളി"], "தக்காளி", "Tomato"),
+        (["paddy", "rice", "நெல்", "நெல்லு", "அரிசி", "धान", "వరి", "ಭತ್ತ", "നെല്ല്"], "நெல்", "Paddy"),
+        (["onion", "வெங்காயம்", "பியஜ்", "प्याज", "ఉల్లిపాయ", "ಈರುಳ್ಳಿ", "ഉള്ളി"], "வெங்காயம்", "Onion"),
+        (["brinjal", "eggplant", "கத்தரி", "கத்தரிக்காய்", "बैंगन", "వంకాయ", "ಬದನೆಕಾಯಿ", "വഴുതന"], "கத்தரிக்காய்", "Brinjal"),
+        (["chilli", "chili", "மிளகாய்", "மிர்சி", "मिर्च", "మిరప", "ಮೆಣಸಿನಕಾಯಿ", "മുളക്"], "மிளகாய்", "Chilli"),
+        (["cotton", "பருத்தி", "कपास", "పత్తి", "ಹತ್ತಿ", "പരുത്തി"], "பருத்தி", "Cotton"),
+        (["maize", "corn", "சோளம்", "மக்காசோளம்", "மக்கா சோளம்", "मक्का", "మొక్కజొన్న", "ಮೆಕ್ಕೆಜೋಳ", "ചോളം"], "சோளம்", "Maize"),
+        (["banana", "வாழை", "வாழைக்காய்", "केला", "అరటి", "ಬಾಳೆ", "വാഴ"], "வாழை", "Banana"),
+        (["carrot", "கேரட்", "गाजर", "క్యారెట్", "ಕ್ಯಾರೆಟ್", "കാരറ്റ്"], "கேரட்", "Carrot"),
+        (["sugarcane", "கரும்பு", "गन्ना", "చెరకు", "ಕಬ್ಬು", "കരിമ്പ്"], "கரும்பு", "Sugarcane"),
+        (["okra", "bhindi", "வெண்டை", "வெண்டைக்காய்", "भिंडी", "బెండకాయ", "ಬೆಂಡೇಕಾಯಿ", "വെണ്ടയ്ക്ക"], "வெண்டைக்காய்", "Okra"),
+        (["turmeric", "மஞ்சள்", "हल्दी", "పసుపు", "ಅರಿಶಿನ", "മഞ്ഞൾ"], "மஞ்சள்", "Turmeric"),
+        (["groundnut", "peanut", "கடலை", "நிலக்கடலை", "मूंगफली", "వేరుశెనగ", "ಕಡಲೆಕಾಯಿ", "നിലക്കടല"], "நிலக்கடலை", "Groundnut"),
+        (["cabbage", "முட்டைக்கோஸ்", "கோஸ்", "पत्ता गोभी", "క్యాబేజీ", "ಕೋಸು", "കാബേജ്"], "முட்டைக்கோஸ்", "Cabbage"),
+        (["cauliflower", "காலிஃபிளவர்", "பூக்கோஸ்", "फूल गोभी", "కాలీఫ్లవర్", "ಹೂಕೋಸು", "കോളിഫ്ലവർ"], "காலிஃபிளவர்", "Cauliflower"),
+        (["millet", "ragi", "bajra", "கம்பு", "கேழ்வரகு", "ராகி", "बाजरा", "रागी", "సజ్జలు", "ರಾಗಿ", "റാഗി"], "கம்பு", "Millets"),
+        (["wheat", "கோதுமை", "गेहूं", "గోధుమ", "ಗೋಧಿ", "ಗೋತമ്പ്"], "கோதுமை", "Wheat"),
+        (["greengram", "green gram", "moong", "பாசிப்பயறு", "பச்சைப்பயறு", "मूंग", "పెసలు", "ಹೆಸರುಕಾಳು", "ചെറുപയർ"], "பாசிப்பயறு", "Greengram"),
+        (["chickpea", "bengal gram", "chana", "கொண்டைக்கடலை", "சுண்டல்", "चना", "శనగలు", "ಕಡಲೆ", "കടല"], "கொண்டைக்கடலை", "Chickpea"),
+        (["coconut", "தென்னை", "தேங்காய்", "नारियल", "కొబ్బరి", "ತೆಂಗು", "തെങ്ങ്"], "தென்னை", "Coconut"),
+        (["mango", "மாங்காய்", "மாம்பழம்", "மாமரம்", "आम", "మామిడి", "ಮಾವು", "മാങ്ങ"], "மாங்காய்", "Mango"),
+        (["blackgram", "urad", "உளுந்து", "உளுந்தம்பயறு", "उड़द", "మినుములు", "ಉದ್ದು", "ഉഴുന്ന്"], "உளுந்து", "Blackgram"),
+        (["jasmine", "மல்லிகை", "மல்லி", "குண்டுமல்லி", "चमेली", "మల్లె", "ಮಲ್ಲಿಗೆ", "മുല്ല"], "மல்லிகை", "Jasmine"),
     ]
 
     for kw_list, tn, en in crop_keywords:
@@ -1197,6 +1207,53 @@ async def nvidia_chat_proxy(request: Request):
                                f"உங்கள் பகுதியில் மிதமான வானிலை நிலவுகிறது. களப்பணிகளுக்கு ஏற்ப நீர் மேலாண்மை செய்யவும்."
         else:
             fallback_content = f"வணக்கம் உழவரே! உங்கள் {crop_name_tn} பயிர் சாகுபடி மற்றும் பாதுகாப்பு தொடர்பான கேள்விகளுக்கு உதவத் தயாராக உள்ளேன். உங்கள் கேள்வியைக் கேட்கவும்."
+
+        # Multilingual localization of fallback response if language is not Tamil
+        if req_lang.startswith("te") or req_lang == "telugu":
+            if is_fertilizer:
+                fallback_content = f"{crop_name_en} పంటకు సిఫార్సు చేసిన ఎరువుల మోతాదును సమతుల్యంగా వేయండి. సేంద్రీయ ఎరువులతో పాటు సరైన సమయంలో నీటిపారుదల చేయండి."
+            elif is_disease:
+                fallback_content = f"{crop_name_en} పంటలో తెగులు లేదా పురుగు నివారణకు సిఫార్సు చేసిన పురుగుమందు లేదా వేపనూనె ద్రావణాన్ని పిచికారీ చేయండి."
+            elif is_soil:
+                fallback_content = f"{crop_name_en} సాగుకు మంచి నీటి పారుదల సౌకర్యం ఉన్న నేల అత్యంత అనుకూలం."
+            else:
+                fallback_content = f"నమస్కారం రైతు సోదరా! మీ {crop_name_en} పంట సాగు, ఎరువులు లేదా రక్షణకు సంబంధించిన ప్రశ్నలకు సహాయం చేయడానికి సిద్ధంగా ఉన్నాను."
+        elif req_lang.startswith("kn") or req_lang == "kannada":
+            if is_fertilizer:
+                fallback_content = f"{crop_name_en} ಬೆಳೆಗೆ ಶಿಫಾರಸು ಮಾಡಿದ ರಸಗೊಬ್ಬರ ಪ್ರಮಾಣವನ್ನು ಹಾಕಿ. ಕೊಟ್ಟಿಗೆ ಗೊಬ್ಬರದೊಂದಿಗೆ ಲಘು ನೀರಾವರಿ ಒದಗಿಸಿ."
+            elif is_disease:
+                fallback_content = f"{crop_name_en} ಬೆಳೆಯಲ್ಲಿ ರೋಗ ಅಥವಾ ಕೀಟ ನಿಯಂತ್ರಣಕ್ಕೆ ಶಿಫಾರಸು ಮಾಡಿದ ಕೀಟನಾಶಕ ಅಥವಾ ಬೇವಿನ ಎಣ್ಣೆ ಸಿಂಪಡಿಸಿ."
+            elif is_soil:
+                fallback_content = f"{crop_name_en} ಬೆಳೆಗೆ ಉತ್ತಮ ಒಳಚರಂಡಿ ವ್ಯವಸ್ಥೆ ಹೊಂದಿರುವ ಮಣ್ಣು ಸೂಕ್ತವಾಗಿದೆ."
+            else:
+                fallback_content = f"ನಮಸ್ಕಾರ ರೈತ ಬಾಂಧವರೇ! ನಿಮ್ಮ {crop_name_en} ಬೆಳೆ ಬೇಸಾಯ ಮತ್ತು ರಕ್ಷಣೆಯ ಕುರಿತ ಪ್ರಶ್ನೆಗಳಿಗೆ ಉತ್ತರಿಸಲು ಸಿದ್ಧನಿದ್ದೇನೆ."
+        elif req_lang.startswith("ml") or req_lang == "malayalam":
+            if is_fertilizer:
+                fallback_content = f"{crop_name_en} കൃഷിക്ക് ശുപാർശ ചെയ്യുന്ന വളപ്രയോഗം നടത്തുക. ജൈവവളത്തിനൊപ്പം മിതമായ നനവ് ഉറപ്പാക്കുക."
+            elif is_disease:
+                fallback_content = f"{crop_name_en} വിളയിലെ രോഗം അല്ലെങ്കിൽ കീടനിയന്ത്രണത്തിന് ശുപാർശ ചെയ്യുന്ന മരുന്നോ വേപ്പെണ്ണ മിശ്രിതമോ തളിക്കുക."
+            elif is_soil:
+                fallback_content = f"{crop_name_en} കൃഷിക്ക് നല്ല നീർവാർച്ചയുള്ള മണ്ണാണ് അനുയോജ്യം."
+            else:
+                fallback_content = f"നമസ്കാരം കർഷക സുഹൃത്തേ! നിങ്ങളുടെ {crop_name_en} കൃഷി, വളം, രോഗനിയന്ത്രണം എന്നിവയെക്കുറിച്ചുള്ള ചോദ്യങ്ങൾക്ക് സഹായിക്കാം."
+        elif req_lang.startswith("hi") or req_lang == "hindi":
+            if is_fertilizer:
+                fallback_content = f"{crop_name_en} फसल के लिए संतुलित उर्वरक का प्रयोग करें और बुवाई से पहले गोबर की खाद डालें।"
+            elif is_disease:
+                fallback_content = f"{crop_name_en} में कीट या रोग नियंत्रण के लिए अनुशंसित कीटनाशक या नीम के तेल का छिड़काव करें।"
+            elif is_soil:
+                fallback_content = f"{crop_name_en} की खेती के लिए उचित जल निकासी वाली उपजाऊ मिट्टी सर्वोत्तम है।"
+            else:
+                fallback_content = f"नमस्ते किसान भाई! आपकी {crop_name_en} फसल, खाद या कीट नियंत्रण संबंधी प्रश्नों में सहायता के लिए मैं तैयार हूँ।"
+        elif req_lang.startswith("en") or req_lang == "english":
+            if is_fertilizer:
+                fallback_content = f"For {crop_name_en}, apply balanced NPK fertilizer along with well-decomposed farmyard manure."
+            elif is_disease:
+                fallback_content = f"For pest or disease management in {crop_name_en}, spray recommended pesticide or neem oil solution under proper moisture."
+            elif is_soil:
+                fallback_content = f"Well-drained fertile soil is ideal for {crop_name_en} cultivation."
+            else:
+                fallback_content = f"Hello farmer! I am ready to assist with your {crop_name_en} cultivation, fertilizer, or crop protection queries."
 
     return {
         "choices": [{"message": {"role": "assistant", "content": fallback_content}, "finish_reason": "stop"}],

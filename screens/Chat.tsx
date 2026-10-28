@@ -6,7 +6,7 @@ import { ChatMessage } from '../types';
 import { getGlobalWebLlmEngine, getLanguageConfig } from './PhoneCall';
 import { getLocalizedGreeting, getStrictSystemPrompt, resolveIntelligentQueryRoute } from '../services/promptConfig';
 import { getStoredFarmerProfile } from '../services/farmerContextService';
-import { getOfflineAgriculturalResponse, analyzePlantDiseaseOffline } from '../services/offlineIntelligenceService';
+import { getOfflineAgriculturalResponse, analyzePlantDiseaseOffline, buildAgronomicRAGContext, identifyCropKey, OFFLINE_CROP_DATABASE } from '../services/offlineIntelligenceService';
 import { getApiBaseUrl } from '../services/api';
 
 export { resolveIntelligentQueryRoute };
@@ -294,13 +294,26 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
       };
       const targetLang = langNames[activeLang.toLowerCase()] || (activeLang.toLowerCase().startsWith('en') ? 'English' : 'Tamil (தமிழ்)');
 
+      // Dynamically extract crop from user query to prevent stale profile crop lock
+      const detectedDbKey = identifyCropKey(cleanedQuery.toLowerCase());
+      const hasSpecificCrop = /முட்டைக்கோஸ்|காலிஃபிளவர்|கம்பு|கேழ்வரகு|கோதுமை|பாசிப்பயறு|கொண்டைக்கடலை|தென்னை|மாங்காய்|உளுந்து|மல்லிகை|நெல்|தக்காளி|வெங்காயம்|கேரட்|பருத்தி|மிளகாய்|வாழை|உருளை|மக்காச்சோளம்|கரும்பு|கத்தரி|வெண்டை|கடலை|மஞ்சள்|cabbage|cauliflower|millet|ragi|bajra|wheat|greengram|chickpea|coconut|mango|blackgram|jasmine|paddy|rice|tomato|onion|carrot|cotton|chilli|banana|potato|maize|corn|sugarcane|brinjal|okra|groundnut|turmeric/i.test(cleanedQuery);
+      const isGeneralDomain = /weather|மழை|வானிலை|forecast|scheme|திட்டம்|மானியம்|pm kisan|காப்பீடு|loan|கடன்|மாடு|பசு|ஆடு|பால்|livestock|cow|dairy|மண் பரிசோதனை|soil test|விதை நேர்த்தி|seed treatment|storage|godown|ஹெல்ப்லைன்|helpline|1800|உழவர் சந்தை|panchagavya/i.test(cleanedQuery);
+      const activeCropName = hasSpecificCrop && OFFLINE_CROP_DATABASE[detectedDbKey]
+        ? OFFLINE_CROP_DATABASE[detectedDbKey].name.en
+        : (isGeneralDomain ? 'General Agriculture' : profileDetails.registeredCrop);
+
+      // Retrieve scientific ICAR / TNAU agronomic grounding
+      const agronomicEvidence = buildAgronomicRAGContext(cleanedQuery, activeCropName !== 'General Agriculture' ? activeCropName : null, profileDetails.district);
+      const evidenceSection = agronomicEvidence ? `SCIENTIFIC AGRONOMIC GROUNDING (ICAR / TNAU):\n${agronomicEvidence}\n` : '';
+
       const farmerContext = [
         `You are UZHAVAN AI (உழவன் AI), an expert agricultural assistant helping an Indian farmer.`,
         `FARMER CONTEXT:`,
         `- Name: ${profileDetails.farmerName}`,
         `- Location: ${profileDetails.district}`,
-        `- Crop: ${profileDetails.registeredCrop}`,
+        `- Target Topic / Crop: ${activeCropName}`,
         `- Soil: ${profileDetails.soilType}`,
+        evidenceSection,
         `MANDATORY LANGUAGE:`,
         `You MUST respond STRICTLY and ONLY in ${targetLang}. All output text must be in ${targetLang}. Do NOT output in English or any other language unless ${targetLang} is English.`,
         `RULES:`,
@@ -309,7 +322,7 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
         `3. NEVER mention AI, model, API, backend, system, Groq, Gemini, or NVIDIA.`,
         `4. Give clear, actionable advice (varieties, soil preparation, planting, irrigation, fertilizer dosage, or pest management).`,
         `5. Answer concisely in 1-2 clear, helpful sentences.`
-      ].join('\n');
+      ].filter(Boolean).join('\n');
 
       const promptWithAnchor = `INSTRUCTION: Begin your response IMMEDIATELY with the answer strictly in ${targetLang}. Do NOT write English thinking, do NOT write "We need to", output ONLY the final reply in ${targetLang}:\n\n${cleanedQuery}`;
 
@@ -447,8 +460,9 @@ const Chat: React.FC<Props> = ({ onBack, language, t }) => {
           }
         }
 
-        // Language matching validation
-        const needsFallback = !responseText ||
+        // Language matching validation & anti-Tamil script isolation
+        const hasTamilLeak = (isHi || isTe || isKn || isMl || isEn) && /[\u0B80-\u0BFF]/.test(responseText);
+        const needsFallback = !responseText || hasTamilLeak ||
           (isTa && !/[\u0B80-\u0BFF]/.test(responseText)) ||
           (isHi && !/[\u0900-\u097F]/.test(responseText)) ||
           (isTe && !/[\u0C00-\u0C7F]/.test(responseText)) ||
